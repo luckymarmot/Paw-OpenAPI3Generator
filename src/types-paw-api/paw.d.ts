@@ -497,6 +497,10 @@ export interface Importer {
   import(context: Context, items: ExtensionItem[], options: ExtensionOption): boolean
 }
 
+export interface Generator {
+  generate(context: Context, requests: Request[], options: ExtensionOption): string
+}
+
 export interface ExtensionImportFile {
   name: string
   path: string
@@ -525,4 +529,5 @@ export type DynamicStringComponent = string | DynamicValue;
 
 declare global {
   function registerImporter(importer: any): void;
+  function registerCodeGenerator(generator: any): void;
 }
