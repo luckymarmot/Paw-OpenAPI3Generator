@@ -1,28 +1,51 @@
-import Paw from "../../../types-paw-api/paw"
-import OpenAPI, {MapKeyedWithString, BasicCredentialsLabel} from "../../../types-paw-api/openapi"
-import ParametersConverter from "./parameters-converter";
+// eslint-disable-next-line import/extensions
+import Paw from '../../../types-paw-api/paw';
+// eslint-disable-next-line import/extensions
+import OpenAPI, { MapKeyedWithString, BasicCredentialsLabel } from '../../../types-paw-api/openapi';
+import ParametersConverter from './parameters-converter';
 
-export type AuthConverterType = [string, OpenAPI.SecurityRequirementObject, OpenAPI.SecuritySchemeObject, OpenAPI.ExampleObject]
+export type AuthConverterType = [
+  string,
+  OpenAPI.SecurityRequirementObject,
+  OpenAPI.SecuritySchemeObject,
+  OpenAPI.ExampleObject
+];
 
 export default class AuthConverter {
-  private request: Paw.Request
-  private authFound: boolean
-  private readonly existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>
-  private key: string
-  private requirement: OpenAPI.SecurityRequirementObject
-  private scheme: OpenAPI.SecuritySchemeObject
-  private example: OpenAPI.ExampleObject
+  private request: Paw.Request;
 
-  constructor(request: Paw.Request, existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>, parametersConverters: ParametersConverter) {
-    this.request = request
-    this.authFound = false
-    this.existingExamples = existingExamples
+  private authFound: boolean;
 
-    this.parseBasicAuth()
-    !this.authFound && this.parseHttpBearerAuth()
-    !this.authFound && this.parseApiKeyAuth(parametersConverters)
-    !this.authFound && this.parseOAuth2Auth()
-    !this.authFound && this.parseOpenIdConnectAuth()
+  private readonly existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>;
+
+  private key: string;
+
+  private requirement: OpenAPI.SecurityRequirementObject;
+
+  private scheme: OpenAPI.SecuritySchemeObject;
+
+  private example: OpenAPI.ExampleObject;
+
+  constructor(
+    request: Paw.Request,
+    existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    parametersConverters: ParametersConverter,
+  ) {
+    this.request = request;
+    this.authFound = false;
+    this.existingExamples = existingExamples;
+
+    this.parseBasicAuth();
+    if (!this.authFound) {
+      this.parseHttpBearerAuth();
+    }
+    if (!this.authFound) {
+      // this.parseApiKeyAuth(parametersConverters);
+    }
+    if (!this.authFound) {
+      this.parseOAuth2Auth();
+    }
   }
 
   getOutput(): AuthConverterType {
@@ -30,79 +53,80 @@ export default class AuthConverter {
       this.key,
       this.requirement,
       this.scheme,
-      this.example
-    ]
+      this.example,
+    ];
   }
 
   private parseBasicAuth() {
     if (this.request.httpBasicAuth) {
-      this.key = ''
-      this.requirement = {}
-      let found: boolean = false
+      this.key = '';
+      this.requirement = {};
+      let found: boolean = false;
 
       if (this.existingExamples) {
         Object.entries(this.existingExamples).forEach(([key, example]) => {
+          const {
+            summary,
+            value,
+          } = example as OpenAPI.ExampleObject;
+
           if (
             !found
-            && this.request.httpBasicAuth // I had to add that because TypeScript do not recognize that this value has been already checked few lines above
-            && (example as OpenAPI.ExampleObject).summary
-            && (example as OpenAPI.ExampleObject).summary === BasicCredentialsLabel
-            && (example as OpenAPI.ExampleObject).value?.username
-            && (example as OpenAPI.ExampleObject).value?.username === this.request.httpBasicAuth.username
-            && (example as OpenAPI.ExampleObject).value?.password
-            && (example as OpenAPI.ExampleObject).value?.password === this.request.httpBasicAuth.password
+            && this.request.httpBasicAuth
+            && summary
+            && summary === BasicCredentialsLabel
+            && value?.username
+            && value?.username === this.request.httpBasicAuth.username
+            && value?.password
+            && value?.password === this.request.httpBasicAuth.password
           ) {
-            found = true
-            this.key = key.toString()
+            found = true;
+            this.key = key.toString();
           }
-        })
+        });
       }
 
       if (!found) {
-        this.key = `BasicAuth${this.existingExamples.length > 0 ? `_${this.existingExamples.length}` : ''}`
+        this.key = `BasicAuth${this.existingExamples.length > 0 ? `_${this.existingExamples.length}` : ''}`;
 
         const securityScheme: OpenAPI.SecuritySchemeObject = {
-          type: "http",
-          scheme: "basic"
-        }
+          type: 'http',
+          scheme: 'basic',
+        };
 
         const securityExample: OpenAPI.ExampleObject = {
           summary: BasicCredentialsLabel,
-          value: this.request.httpBasicAuth
-        }
+          value: this.request.httpBasicAuth,
+        };
 
-        this.scheme = securityScheme
-        this.example = securityExample
+        this.scheme = securityScheme;
+        this.example = securityExample;
       }
 
-      this.requirement[this.key] = []
+      this.requirement[this.key] = [];
 
       this.authFound = true;
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private parseHttpBearerAuth() {
     /**
      * @TODO
      */
   }
 
-  private parseApiKeyAuth(parametersConverters: ParametersConverter) {
-    /**
-     * @TODO
-     * - in query
-     * - in header
-     * - in cookie
-     */
-  }
+  // private parseApiKeyAuth(parametersConverters: ParametersConverter) {
+  //   /**
+  //    * @TODO
+  //    * - in query
+  //    * - in header
+  //    * - in cookie
+  //    */
+  // }
 
+  // eslint-disable-next-line class-methods-use-this
   private parseOAuth2Auth() {
-    /**
-     * @TODO
-     */
-  }
-
-  private parseOpenIdConnectAuth() {
     /**
      * @TODO
      */

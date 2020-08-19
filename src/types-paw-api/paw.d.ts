@@ -1,482 +1,528 @@
 /* eslint-disable max-classes-per-file */
 
 declare interface RuntimeInfo {
-    task: string
-    isMainThread: boolean
+  task: string
+  isMainThread: boolean
 }
 
 declare interface DocumentInfo {
+  name: string | null
+  uuid: string | null
+  isCloudProject: boolean
+  cloudProjectId: number | null
+  cloudProject: ({
+    id: number | null
+    currentCommitSha: string | null
+    currentBranch: string | null
+    mainBranch: string
+    isSynced: boolean
+  }) | null
+  cloudTeam: ({
+    id: number | null
     name: string | null
-    uuid: string | null
-    isCloudProject: boolean
-    cloudProjectId: number | null
-    cloudProject: ({
-        id: number | null
-        currentCommitSha: string | null
-        currentBranch: string | null
-        mainBranch: string
-        isSynced: boolean
-    }) | null
-    cloudTeam: ({
-        id: number | null
-        name: string | null
-    }) | null
+  }) | null
 }
 
 declare interface UserInfo {
-    username: string | null
-    email: string | null
-    avatar_url: string | null
+  username: string | null
+  email: string | null
+  avatar_url: string | null
 }
 
 declare class Context {
-    // @TODO definition not finished
+  // @TODO definition not finished
 
-    // Create
-    createRequest(name?: string | null, method?: string | DynamicString | null, url?: string | DynamicString | null, description?: string | null): Request
+  // Create
+  createRequest(
+    name?: string | null,
+    method?: string | DynamicString | null,
+    url?: string | DynamicString | null,
+    description?: string | null
+  ): Request
 
-    createRequestGroup(name: string | null): RequestGroup
+  createRequestGroup(name: string | null): RequestGroup
 
-    createEnvironmentDomain(name: string | null): EnvironmentDomain
+  createEnvironmentDomain(name: string | null): EnvironmentDomain
 
-    createSecureValue(name: string | null): DynamicValue
+  createSecureValue(name: string | null): DynamicValue
 
-    createJSONDynamicValue(name: string | null): DynamicValue
+  createJSONDynamicValue(name: string | null): DynamicValue
 
-    // Get objects by name
-    getCurrentRequest(isRequired?: boolean): Request | null
+  // Get objects by name
+  getCurrentRequest(isRequired?: boolean): Request | null
 
-    getRequestByName(name: string): Request | null
+  getRequestByName(name: string): Request | null
 
-    getRequestGroupByName(name: string): RequestGroup | null
+  getRequestGroupByName(name: string): RequestGroup | null
 
-    getEnvironmentDomainByName(name: string): EnvironmentDomain | null
+  getEnvironmentDomainByName(name: string): EnvironmentDomain | null
 
-    getEnvironmentVariableByName(name: string): EnvironmentVariable | null
+  getEnvironmentVariableByName(name: string): EnvironmentVariable | null
 
-    // Get objects by id
-    getRequestById(id: string): Request | null
+  // Get objects by id
+  getRequestById(id: string): Request | null
 
-    getRequestGroupById(id: string): RequestGroup | null
+  getRequestGroupById(id: string): RequestGroup | null
 
-    getEnvironmentDomainById(id: string): EnvironmentDomain | null
+  getEnvironmentDomainById(id: string): EnvironmentDomain | null
 
-    getEnvironmentVariableById(id: string): EnvironmentVariable | null
+  getEnvironmentVariableById(id: string): EnvironmentVariable | null
 
-    getEnvironmentById(id: string): Environment | null
+  getEnvironmentById(id: string): Environment | null
 
-    // Get root items
-    getRootRequests(): Request[]
+  // Get root items
+  getRootRequests(): Request[]
 
-    getRootGroups(): RequestGroup[]
+  getRootGroups(): RequestGroup[]
 
-    getRootRequestTreeItems(): RequestTreeItem[]
+  getRootRequestTreeItems(): RequestTreeItem[]
 
-    // Get all objects
-    getAllRequests(): Request[]
+  // Get all objects
+  getAllRequests(): Request[]
 
-    getAllGroups(): RequestGroup[]
+  getAllGroups(): RequestGroup[]
 
-    getAllRequestTreeItems(): RequestTreeItem[]
+  getAllRequestTreeItems(): RequestTreeItem[]
 
-    // Get selected objects
-    getSelectedRequests(): Request[]
+  // Get selected objects
+  getSelectedRequests(): Request[]
 
-    getSelectedGroups(): RequestGroup[]
+  getSelectedGroups(): RequestGroup[]
 
-    getSelectedRequestTreeItems(): RequestTreeItem[]
+  getSelectedRequestTreeItems(): RequestTreeItem[]
 
-    // JSON Serialization
-    stringifyJSONItems(...items: any[]): string | null
+  // JSON Serialization
+  stringifyJSONItems(...items: any[]): string | null
 
-    parseJSONItems(json: string): any[] | null
+  parseJSONItems(json: string): any[] | null
 
-    // Info
-    runtimeInfo: RuntimeInfo
-    allowsMutation: boolean
-    document: DocumentInfo
-    user: UserInfo | null
+  // Info
+  runtimeInfo: RuntimeInfo;
+
+  allowsMutation: boolean;
+
+  document: DocumentInfo;
+
+  user: UserInfo | null;
+}
+
+declare class RequestTreeItem {
+  //
 }
 
 declare interface BasicAuth {
-    username: string | DynamicString | null
-    password: string | DynamicString | null
+  username: string | DynamicString | null
+  password: string | DynamicString | null
 }
 
 declare interface OAuth1 {
-    oauth_consumer_key: string | DynamicString | null
-    oauth_consumer_secret: string | DynamicString | null
-    oauth_token: string | DynamicString | null
-    oauth_token_secret: string | DynamicString | null
-    oauth_nonce: string | DynamicString | null | undefined
-    oauth_timestamp: string | DynamicString | null | undefined
-    oauth_callback: string | DynamicString | null | undefined
-    oauth_signature: string | DynamicString | null | undefined
-    oauth_signature_method: string | null | undefined
-    oauth_version: string | undefined
-    oauth_additional_parameters: string | DynamicString | null | undefined
+  oauth_consumer_key: string | DynamicString | null
+  oauth_consumer_secret: string | DynamicString | null
+  oauth_token: string | DynamicString | null
+  oauth_token_secret: string | DynamicString | null
+  oauth_nonce: string | DynamicString | null | undefined
+  oauth_timestamp: string | DynamicString | null | undefined
+  oauth_callback: string | DynamicString | null | undefined
+  oauth_signature: string | DynamicString | null | undefined
+  oauth_signature_method: string | null | undefined
+  oauth_version: string | undefined
+  oauth_additional_parameters: string | DynamicString | null | undefined
 }
 
 declare interface OAuth2 {
-    client_id: string | DynamicString | null
-    client_secret: string | DynamicString | null
-    authorization_uri: string | DynamicString | null
-    access_token_uri: string | DynamicString | null
-    redirect_uri: string | DynamicString | null
-    scope: string | DynamicString | null | undefined
-    state: string | DynamicString | null | undefined
-    token: string | DynamicString | null | undefined
-    token_prefix: string | DynamicString | null | undefined
-    grant_type: string | undefined
+  client_id: string | DynamicString | null
+  client_secret: string | DynamicString | null
+  authorization_uri: string | DynamicString | null
+  access_token_uri: string | DynamicString | null
+  redirect_uri: string | DynamicString | null
+  scope: string | DynamicString | null | undefined
+  state: string | DynamicString | null | undefined
+  token: string | DynamicString | null | undefined
+  token_prefix: string | DynamicString | null | undefined
+  grant_type: string | undefined
 }
 
-declare class Request {
-    readonly id: string
-    readonly parent: RequestTreeItem | null
-    name: string
-    description: string
-    order: number
+declare class Request extends RequestTreeItem {
+  readonly id: string;
 
-    // URL
-    url: string | DynamicString
+  readonly parent: RequestTreeItem | null;
 
-    getUrl(isDynamic?: boolean): string | DynamicString
+  name: string;
 
-    // URL Base
-    readonly urlBase: string
+  description: string;
 
-    getUrlBase(isDynamic?: boolean): string | DynamicString
+  order: number;
 
-    // URL Query
-    readonly urlQuery: string
+  // URL
+  url: string | DynamicString;
 
-    // URL Parameters
-    urlParameters: { [key: string]: string | DynamicString }
+  getUrl(isDynamic?: boolean): string | DynamicString
 
-    getUrlParameters(isDynamic?: boolean): { [key: string]: string | DynamicString }
+  // URL Base
+  readonly urlBase: string;
 
-    getUrlParametersArray(): KeyValue[]
+  getUrlBase(isDynamic?: boolean): string | DynamicString
 
-    readonly urlParametersNames: string[]
+  // URL Query
+  readonly urlQuery: string;
 
-    getUrlParametersNames(): string[]
+  // URL Parameters
+  urlParameters: { [key: string]: string | DynamicString };
 
-    getUrlParameterByName(name: string, isDynamic?: boolean): string | DynamicString | null
+  getUrlParameters(isDynamic?: boolean): { [key: string]: string | DynamicString }
 
-    setUrlParameter(name: string | DynamicString, value: string | DynamicString): KeyValue
+  getUrlParametersArray(): KeyValue[]
 
-    setUrlParameterByName(name: string | DynamicString, value: string | DynamicString): KeyValue // alias of setUrlParameter()
-    addUrlParameter(name: string | DynamicString, value: string | DynamicString): KeyValue
+  readonly urlParametersNames: string[];
 
-    addRawUrlQuery(query: string | DynamicString): KeyValue
+  getUrlParametersNames(): string[]
 
-    // Method
-    method: string | DynamicString
+  getUrlParameterByName(name: string, isDynamic?: boolean): string | DynamicString | null
 
-    getMethod(isDynamic?: boolean): string | DynamicString
+  setUrlParameter(name: string | DynamicString, value: string | DynamicString): KeyValue
 
-    // Headers
-    headers: { [key: string]: string | DynamicString }
+  setUrlParameterByName(
+    name: string | DynamicString,
+    value: string | DynamicString,
+  ): KeyValue // alias of setUrlParameter()
+  addUrlParameter(name: string | DynamicString, value: string | DynamicString): KeyValue
 
-    getHeaders(isDynamic?: boolean): { [key: string]: string | DynamicString }
+  addRawUrlQuery(query: string | DynamicString): KeyValue
 
-    readonly headersNames: string[]
+  // Method
+  method: string | DynamicString;
 
-    getHeadersNames(): string[]
+  getMethod(isDynamic?: boolean): string | DynamicString
 
-    getHeaderByName(name: string, isDynamic?: boolean): string | DynamicString | null
+  // Headers
+  headers: { [key: string]: string | DynamicString };
 
-    getHeadersArray(): KeyValue[]
+  getHeaders(isDynamic?: boolean): { [key: string]: string | DynamicString }
 
-    setHeader(name: string | DynamicString, value: string | DynamicString): KeyValue
+  readonly headersNames: string[];
 
-    addHeader(name: string | DynamicString, value: string | DynamicString): KeyValue
+  getHeadersNames(): string[]
 
-    // Body
-    body: string | DynamicString | null
+  getHeaderByName(name: string, isDynamic?: boolean): string | DynamicString | null
 
-    getBody(isDynamic?: boolean): string | DynamicString | null
+  getHeadersArray(): KeyValue[]
 
-    // Body (URL Encoded)
-    urlEncodedBody: { [key: string]: string | DynamicString } | null
+  setHeader(name: string | DynamicString, value: string | DynamicString): KeyValue
 
-    getUrlEncodedBody(isDynamic?: boolean): { [key: string]: string | DynamicString } | null
+  addHeader(name: string | DynamicString, value: string | DynamicString): KeyValue
 
-    getUrlEncodedBodyKeys(): string[] | null
+  // Body
+  body: string | DynamicString | null;
 
-    readonly urlEncodedBodyKeys: string[] | null
+  getBody(isDynamic?: boolean): string | DynamicString | null
 
-    getUrlEncodedBodyKey(key: string): string | null
+  // Body (URL Encoded)
+  urlEncodedBody: { [key: string]: string | DynamicString } | null;
 
-    // Body (Multipart)
-    multipartBody: { [key: string]: string | DynamicString } | null
+  getUrlEncodedBody(isDynamic?: boolean): { [key: string]: string | DynamicString } | null
 
-    getMultipartBody(isDynamic?: boolean): { [key: string]: string | DynamicString } | null
+  getUrlEncodedBodyKeys(): string[] | null
 
-    // Body (JSON)
-    jsonBody: object | null
+  readonly urlEncodedBodyKeys: string[] | null;
 
-    getJsonBodyKeyPath(keyPath: string): object | null
+  getUrlEncodedBodyKey(key: string): string | null
 
-    // Auth
-    httpBasicAuth: BasicAuth | null
+  // Body (Multipart)
+  multipartBody: { [key: string]: string | DynamicString } | null;
 
-    getHttpBasicAuth(isDynamic?: boolean): BasicAuth | null
+  getMultipartBody(isDynamic?: boolean): { [key: string]: string | DynamicString } | null
 
-    oauth1: OAuth1 | null
+  // Body (JSON)
+  jsonBody: object | null;
 
-    getOAuth1(isDynamic?: boolean): OAuth1 | null
+  getJsonBodyKeyPath(keyPath: string): object | null
 
-    oauth2: OAuth2 | null
+  // Auth
+  httpBasicAuth: BasicAuth | null;
 
-    getOAuth2(isDynamic?: boolean): OAuth2 | null
+  getHttpBasicAuth(isDynamic?: boolean): BasicAuth | null
 
-    // Request Variables
-    readonly variables: RequestVariable[]
+  oauth1: OAuth1 | null;
 
-    getVariablesNames(): string[]
+  getOAuth1(isDynamic?: boolean): OAuth1 | null
 
-    getVariableByName(name: string): RequestVariable | null
+  oauth2: OAuth2 | null;
 
-    getVariableById(id: string): RequestVariable | null
+  getOAuth2(isDynamic?: boolean): OAuth2 | null
 
-    addVariable(name: string, value: string | DynamicString, description: string): RequestVariable
+  // Request Variables
+  readonly variables: RequestVariable[];
 
-    // Options
-    timeout: number
-    followRedirects: boolean
-    redirectAuthorization: boolean
-    redirectMethod: boolean
-    sendCookies: boolean
-    storeCookies: boolean
-    clientCertificate: DynamicString | null
+  getVariablesNames(): string[]
 
-    // HTTP Exchange
-    getLastExchange(): HTTPExchange | null
+  getVariableByName(name: string): RequestVariable | null
 
-    getAllExchanges(): HTTPExchange[]
+  getVariableById(id: string): RequestVariable | null
 
-    // Clone, delete
-    clone(newName: string): Request
+  addVariable(name: string, value: string | DynamicString, description: string): RequestVariable
 
-    deleteRequest(): boolean
+  // Options
+  timeout: number;
+
+  followRedirects: boolean;
+
+  redirectAuthorization: boolean;
+
+  redirectMethod: boolean;
+
+  sendCookies: boolean;
+
+  storeCookies: boolean;
+
+  clientCertificate: DynamicString | null;
+
+  // HTTP Exchange
+  getLastExchange(): HTTPExchange | null
+
+  getAllExchanges(): HTTPExchange[]
+
+  // Clone, delete
+  clone(newName: string): Request
+
+  deleteRequest(): boolean
 }
 
-declare class RequestGroup {
-    readonly id: string
-    readonly parent: RequestTreeItem | null
-    name: string | null
-    order: number
+declare class RequestGroup extends RequestTreeItem {
+  readonly id: string;
 
-    getChildren(): RequestTreeItem[]
+  readonly parent: RequestTreeItem | null;
 
-    getChildRequests(): Request[]
+  name: string | null;
 
-    getChildGroups(): RequestGroup[]
+  order: number;
 
-    appendChild(child: RequestTreeItem): void
+  getChildren(): RequestTreeItem[]
 
-    insertChild(child: RequestTreeItem, index: number): void
+  getChildRequests(): Request[]
 
-    deleteGroup(): boolean
+  getChildGroups(): RequestGroup[]
+
+  appendChild(child: RequestTreeItem): void
+
+  insertChild(child: RequestTreeItem, index: number): void
+
+  deleteGroup(): boolean
 }
 
 declare enum KeyValueMode {
-    Normal = 0,
-    NormalAlwaysAddEqualSign = 1,
-    Raw = 2,
+  Normal = 0,
+  NormalAlwaysAddEqualSign = 1,
+  Raw = 2,
 }
 
 declare class KeyValue {
-    readonly id: string
-    readonly request: Request
-    readonly isHeader: boolean
-    readonly isUrlParameter: boolean
-    name: DynamicString
-    value: DynamicString
-    enabled: boolean
-    mode: KeyValueMode
+  readonly id: string;
+
+  readonly request: Request;
+
+  readonly isHeader: boolean;
+
+  readonly isUrlParameter: boolean;
+
+  name: DynamicString;
+
+  value: DynamicString;
+
+  enabled: boolean;
+
+  mode: KeyValueMode;
 }
 
 declare class RequestVariable {
-    readonly id: string
-    readonly request: Request
-    name: string
-    value: string | DynamicString | null
-    description: string | null
-    required: boolean
-    schema: string | DynamicString | null
+  readonly id: string;
 
-    getCurrentValue(isDynamic?: boolean): string | DynamicString | null
+  readonly request: Request;
 
-    getSchema(isDynamic?: boolean): string | DynamicString | null
+  name: string;
 
-    createDynamicValue(): DynamicValue
+  value: string | DynamicString | null;
 
-    createDynamicString(): DynamicString
+  description: string | null;
+
+  required: boolean;
+
+  schema: string | DynamicString | null;
+
+  getCurrentValue(isDynamic?: boolean): string | DynamicString | null
+
+  getSchema(isDynamic?: boolean): string | DynamicString | null
+
+  createDynamicValue(): DynamicValue
+
+  createDynamicString(): DynamicString
 }
 
 declare class EnvironmentDomain {
-    readonly id: string
-    name: string | null
-    order: number
+  readonly id: string;
 
-    // variables
-    readonly variables: EnvironmentVariable[]
+  name: string | null;
 
-    getVariableByName(name: string): EnvironmentVariable | null
+  order: number;
 
-    createEnvironmentVariable(name: string): EnvironmentVariable
+  // variables
+  readonly variables: EnvironmentVariable[];
 
-    // environments
-    readonly environments: Environment[]
+  getVariableByName(name: string): EnvironmentVariable | null
 
-    getEnvironmentByName(name: string): Environment | null
+  createEnvironmentVariable(name: string): EnvironmentVariable
 
-    createEnvironment(name: string): Environment
+  // environments
+  readonly environments: Environment[];
+
+  getEnvironmentByName(name: string): Environment | null
+
+  createEnvironment(name: string): Environment
 }
 
 declare class Environment {
-    readonly id: string
-    name: string | null
-    domain: EnvironmentDomain
-    order: number
+  readonly id: string;
 
-    getVariablesValues(isDynamic?: boolean): { [key: string]: string | DynamicString }
+  name: string | null;
 
-    setVariablesValues(values: { [key: string]: string | DynamicString }): void
+  domain: EnvironmentDomain;
+
+  order: number;
+
+  getVariablesValues(isDynamic?: boolean): { [key: string]: string | DynamicString }
+
+  setVariablesValues(values: { [key: string]: string | DynamicString }): void
 }
 
 declare class EnvironmentVariable {
-    readonly id: string
-    name: string | null
-    domain: EnvironmentDomain
-    order: number
+  readonly id: string;
 
-    getCurrentValue(isDynamic?: boolean): string | DynamicString | null
+  name: string | null;
 
-    getValue(environment: Environment, isDynamic?: boolean): string | DynamicString | null
+  domain: EnvironmentDomain;
 
-    setCurrentValue(value: string | DynamicString): void
+  order: number;
 
-    setValue(value: string | DynamicString, environment: Environment): void
+  getCurrentValue(isDynamic?: boolean): string | DynamicString | null
 
-    createDynamicValue(): DynamicValue
+  getValue(environment: Environment, isDynamic?: boolean): string | DynamicString | null
 
-    createDynamicString(): DynamicString
+  setCurrentValue(value: string | DynamicString): void
+
+  setValue(value: string | DynamicString, environment: Environment): void
+
+  createDynamicValue(): DynamicValue
+
+  createDynamicString(): DynamicString
 }
 
 declare class HTTPExchange {
-    readonly id: string
-    readonly requestMethod: string
-    readonly requestUrl: string
-    readonly requestBody: string
-    readonly requestHeaders: {[headerName: string]: string}
-    readonly requestHeaderString: string
-    readonly responseStatusCode: number
-    readonly responseStatusLine: string
-    readonly responseHeaders: {[headerName: string]: string}
-    readonly responseHeaderString: string
-    readonly responseBody: string
-    readonly responseTime: number
-    readonly downloadTime: number
-    readonly date: Date
+  readonly id: string;
 
-    getRequestHeaderByName(headerName: string): string | null
-    getResponseHeaderByName(headerName: string): string | null
+  readonly requestMethod: string;
+
+  readonly requestUrl: string;
+
+  readonly requestBody: string;
+
+  readonly requestHeaders: { [headerName: string]: string };
+
+  readonly requestHeaderString: string;
+
+  readonly responseStatusCode: number;
+
+  readonly responseStatusLine: string;
+
+  readonly responseHeaders: { [headerName: string]: string };
+
+  readonly responseHeaderString: string;
+
+  readonly responseBody: string;
+
+  readonly responseTime: number;
+
+  readonly downloadTime: number;
+
+  readonly date: Date;
+
+  getRequestHeaderByName(headerName: string): string | null
+
+  getResponseHeaderByName(headerName: string): string | null
 }
 
 declare global {
-    class DynamicString {
-        constructor(...components: DynamicStringComponent[])
+  class DynamicString {
+    constructor(...components: DynamicStringComponent[])
 
-        length: number
-        components: DynamicStringComponent[]
+    length: number;
 
-        getComponentAtIndex(index: number): DynamicStringComponent | null
+    components: DynamicStringComponent[];
 
-        getSimpleString(): string
+    getComponentAtIndex(index: number): DynamicStringComponent | null
 
-        getOnlyString(): string | null
+    getSimpleString(): string
 
-        getOnlyDynamicValue(): DynamicValue | null
+    getOnlyString(): string | null
 
-        getEvaluatedString(): string
+    getOnlyDynamicValue(): DynamicValue | null
 
-        copy(): DynamicString
+    getEvaluatedString(): string
 
-        appendString(string: string): void
+    copy(): DynamicString
 
-        appendDynamicValue(dynamicValue: DynamicValue): void
+    appendString(string: string): void
 
-        appendDynamicString(dynamicString: DynamicString): void
-    }
+    appendDynamicValue(dynamicValue: DynamicValue): void
 
-    class DynamicValue {
-        constructor(type: string, properties?: { [key: string]: any })
+    appendDynamicString(dynamicString: DynamicString): void
+  }
 
-        type: string
+  class DynamicValue {
+    constructor(type: string, properties?: { [key: string]: any })
 
-        getEvaluatedString(): string
+    type: string;
 
-        copy(): DynamicValue
-    }
+    getEvaluatedString(): string
 
-    class NetworkHTTPRequest {
-        // @TODO definition not finished
-    }
+    copy(): DynamicValue
+  }
+
+  class NetworkHTTPRequest {
+    // @TODO definition not finished
+  }
 }
 
 export interface Importer {
-    canImport(context: Context, items: ExtensionItem[]): number
+  canImport(context: Context, items: ExtensionItem[]): number
 
-    import(context: Context, items: ExtensionItem[], options: ExtensionOption): boolean
+  import(context: Context, items: ExtensionItem[], options: ExtensionOption): boolean
 }
 
 export interface ExtensionImportFile {
-    name: string
-    path: string
+  name: string
+  path: string
 }
 
 export interface ExtensionOption {
-    inputs: { [key: string]: any } | null
-    file: ExtensionImportFile | null
-    hideCredentials: boolean
-    parent: RequestTreeItem | null
-    order: number | null
+  inputs: { [key: string]: any } | null
+  file: ExtensionImportFile | null
+  hideCredentials: boolean
+  parent: RequestTreeItem | null
+  order: number | null
 }
 
 export interface ExtensionItem {
-    content: string
-    name: string
-    uri: string
-    url: string | null
-    file: ExtensionImportFile | null
-    mimeType: string | null
-    httpHeaders: object | null
-    httpStatus: number | null
+  content: string
+  name: string
+  uri: string
+  url: string | null
+  file: ExtensionImportFile | null
+  mimeType: string | null
+  httpHeaders: object | null
+  httpStatus: number | null
 }
 
-export interface ExtensionInput {
-    // @TODO definition not finished
-}
-
-export interface Generator {
-    /* (static) identifier: string */
-    /* (static) title: string */
-    /* (static) fileExtension?: string */
-    /* (static) languageHighlighter?: string */
-    /* (static) inputs?: ExtensionInput[] */
-
-    /* (static) help?: string */
-    generate(context: Context, requests: Request[], options: ExtensionOption): string
-}
-
-export type DynamicStringComponent = string | DynamicValue
-export type RequestTreeItem = Request | RequestGroup
+export type DynamicStringComponent = string | DynamicValue;
 
 declare global {
-    function registerImporter(importer: any): void
-
-    function registerCodeGenerator(importer: any): void
+  function registerImporter(importer: any): void;
 }
