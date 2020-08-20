@@ -2,7 +2,6 @@
 import Paw from '../../../types-paw-api/paw';
 // eslint-disable-next-line import/extensions
 import OpenAPI, { MapKeyedWithString, BasicCredentialsLabel } from '../../../types-paw-api/openapi';
-import ParametersConverter from './parameters-converter';
 
 export type AuthConverterType = [
   string,
@@ -29,8 +28,6 @@ export default class AuthConverter {
   constructor(
     request: Paw.Request,
     existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    parametersConverters: ParametersConverter,
   ) {
     this.request = request;
     this.authFound = false;
@@ -38,13 +35,10 @@ export default class AuthConverter {
 
     this.parseBasicAuth();
     if (!this.authFound) {
-      this.parseHttpBearerAuth();
-    }
-    if (!this.authFound) {
-      // this.parseApiKeyAuth(parametersConverters);
-    }
-    if (!this.authFound) {
       this.parseOAuth2Auth();
+    }
+    if (!this.authFound) {
+      this.parseHttpBearerAuth();
     }
   }
 
@@ -110,7 +104,9 @@ export default class AuthConverter {
   // eslint-disable-next-line class-methods-use-this
   private parseHttpBearerAuth() {
     const authHeader = this.request.getHeaderByName('authorization');
-    if (authHeader) {
+
+    if (authHeader && (authHeader as string).match(/bearer /i)) {
+      this.requirement = {};
       this.key = 'BearerAuth';
 
       this.scheme = {
@@ -126,19 +122,39 @@ export default class AuthConverter {
     }
   }
 
-  // private parseApiKeyAuth(parametersConverters: ParametersConverter) {
-  //   /**
-  //    * @TODO
-  //    * - in query
-  //    * - in header
-  //    * - in cookie
-  //    */
-  // }
-
   // eslint-disable-next-line class-methods-use-this
   private parseOAuth2Auth() {
-    /**
-     * @TODO
-     */
+    const { oauth2 } = this.request;
+
+    if (oauth2) {
+      this.requirement = {};
+      this.key = 'OAuth2';
+      const grantType = AuthConverter.camelCaseToCapital(oauth2.grant_type);
+      const scopes = {};
+
+      oauth2.scope.split(' ').forEach((scope) => {
+        scopes[scope] = scope;
+      });
+
+      const flows = {};
+      flows[grantType] = {
+        authorizationUrl: oauth2.authorization_uri,
+        tokenUrl: oauth2.access_token_uri,
+        scopes,
+      } as OpenAPI.OAuthFlowObject;
+
+      this.scheme = {
+        type: 'oauth2',
+        flows,
+      };
+
+      this.requirement[this.key] = [];
+
+      this.authFound = true;
+    }
+  }
+
+  static camelCaseToCapital(string: string) {
+    return string.replace(/[_][a-z]/g, (snakeWithLetter) => snakeWithLetter.toUpperCase().replace('_', ''));
   }
 }

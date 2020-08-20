@@ -40,7 +40,6 @@ export default class PawToOpenapiConverter {
       const auth = PawToOpenapiConverter.generateAuth(
         request,
         this.components.examples as MapKeyedWithString<OpenAPI.ExampleObject>,
-        parametersConverter,
       );
       const responses = PawToOpenapiConverter.generateResponses(request);
 
@@ -93,11 +92,11 @@ export default class PawToOpenapiConverter {
 
     const [authKey, authRequirement, authScheme, authExample] = auth;
 
-    if (authKey && authRequirement && authScheme && authExample) {
+    if (authKey && authRequirement && authScheme) {
       if (this.components.securitySchemes) {
         this.components.securitySchemes[authKey] = authScheme;
       }
-      if (this.components.examples) {
+      if (authExample && this.components.examples) {
         this.components.examples[authKey] = authScheme;
       }
       operation.security = [authRequirement];
@@ -170,9 +169,8 @@ export default class PawToOpenapiConverter {
   static generateAuth(
     request: Paw.Request,
     existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>,
-    parametersConverter: ParametersConverter,
   ): AuthConverterType {
-    const authConverter = new AuthConverter(request, existingExamples, parametersConverter);
+    const authConverter = new AuthConverter(request, existingExamples);
     return authConverter.getOutput();
   }
 
