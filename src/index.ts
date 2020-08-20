@@ -15,7 +15,7 @@ const exportFormat = 'json';
 class OpenAPIGenerator implements Paw.Generator {
   static identifier = 'com.luckymarmot.PawExtensions.OpenAPIGenerator';
 
-  static title = 'OpenAPI 3.0 Generator';
+  static title = 'OpenAPI 3.0';
 
   static languageHighlighter = exportFormat;
 

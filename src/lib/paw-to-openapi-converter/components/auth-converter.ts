@@ -89,17 +89,15 @@ export default class AuthConverter {
       if (!found) {
         this.key = `BasicAuth${this.existingExamples.length > 0 ? `_${this.existingExamples.length}` : ''}`;
 
-        const securityScheme: OpenAPI.SecuritySchemeObject = {
-          type: 'http',
-          scheme: 'basic',
-        };
-
         const securityExample: OpenAPI.ExampleObject = {
           summary: BasicCredentialsLabel,
           value: this.request.httpBasicAuth,
         };
 
-        this.scheme = securityScheme;
+        this.scheme = {
+          type: 'http',
+          scheme: 'basic',
+        };
         this.example = securityExample;
       }
 
@@ -111,9 +109,21 @@ export default class AuthConverter {
 
   // eslint-disable-next-line class-methods-use-this
   private parseHttpBearerAuth() {
-    /**
-     * @TODO
-     */
+    const authHeader = this.request.getHeaderByName('authorization');
+    if (authHeader) {
+      this.key = 'BearerAuth';
+
+      this.scheme = {
+        type: 'http',
+        scheme: 'bearer',
+      };
+
+      // bearer header is parsed with other headers
+
+      this.requirement[this.key] = [];
+
+      this.authFound = true;
+    }
   }
 
   // private parseApiKeyAuth(parametersConverters: ParametersConverter) {
