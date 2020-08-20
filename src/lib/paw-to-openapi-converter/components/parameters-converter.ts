@@ -36,7 +36,7 @@ export default class ParametersConverter {
 
       this.parameters.push({
         name: paramName,
-        in: 'header',
+        in: 'query',
         schema,
       });
     });
