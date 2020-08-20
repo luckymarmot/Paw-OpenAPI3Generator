@@ -3,8 +3,9 @@ import Paw from '../../types-paw-api/paw';
 // eslint-disable-next-line import/extensions
 import OpenAPI, { MapKeyedWithString } from '../../types-paw-api/openapi';
 import URL from '../url';
-import ParametersConverter from './components/parameters-converter';
 import AuthConverter, { AuthConverterType } from './components/auth-converter';
+import BodyConverter from './components/body-converter';
+import ParametersConverter from './components/parameters-converter';
 import ResponsesConverter from './components/responses-converter';
 
 export default class PawToOpenapiConverter {
@@ -72,8 +73,10 @@ export default class PawToOpenapiConverter {
   private generatePathItem(
     request: Paw.Request,
     parameters: OpenAPI.ParameterObject[],
-    url: URL, body: (OpenAPI.RequestBodyObject | null),
-    auth: AuthConverterType, responses: OpenAPI.ResponsesObject,
+    url: URL,
+    body: (OpenAPI.RequestBodyObject | null),
+    auth: AuthConverterType,
+    responses: OpenAPI.ResponsesObject,
   ): OpenAPI.PathItemObject {
     const operation: OpenAPI.OperationObject = {
       operationId: request.id,
@@ -152,18 +155,8 @@ export default class PawToOpenapiConverter {
     request: Paw.Request,
     bodyContentType: string,
   ): OpenAPI.RequestBodyObject | null {
-    if (request.body) {
-      const requestBody: OpenAPI.RequestBodyObject = { content: {} };
-      requestBody.content[bodyContentType] = {
-        example: {
-          value: request.body,
-        } as OpenAPI.ExampleObject,
-      };
-
-      return requestBody;
-    }
-
-    return null;
+    const bodyConverter = new BodyConverter(request, bodyContentType);
+    return bodyConverter.getOutput();
   }
 
   static generateAuth(

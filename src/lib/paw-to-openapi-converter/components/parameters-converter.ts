@@ -90,8 +90,8 @@ export default class ParametersConverter {
             this.bodyContentType = 'application/xml';
           } else if (schema.default.toLowerCase().indexOf('application/x-www-form-urlencoded') >= 0) {
             this.bodyContentType = 'application/x-www-form-urlencoded';
-          } else if (schema.default.toLowerCase().indexOf('application/form-data') >= 0) {
-            this.bodyContentType = 'application/form-data';
+          } else if (schema.default.toLowerCase().indexOf('multipart/form-data') >= 0) {
+            this.bodyContentType = 'multipart/form-data';
           }
         }
 

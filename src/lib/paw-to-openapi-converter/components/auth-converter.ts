@@ -51,7 +51,7 @@ export default class AuthConverter {
     ];
   }
 
-  private parseBasicAuth() {
+  private parseBasicAuth(): void {
     if (this.request.httpBasicAuth) {
       this.key = '';
       this.requirement = {};
@@ -102,7 +102,7 @@ export default class AuthConverter {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private parseHttpBearerAuth() {
+  private parseHttpBearerAuth(): void {
     const authHeader = this.request.getHeaderByName('authorization');
 
     if (authHeader && (authHeader as string).match(/bearer /i)) {
@@ -114,8 +114,6 @@ export default class AuthConverter {
         scheme: 'bearer',
       };
 
-      // bearer header is parsed with other headers
-
       this.requirement[this.key] = [];
 
       this.authFound = true;
@@ -123,7 +121,7 @@ export default class AuthConverter {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private parseOAuth2Auth() {
+  private parseOAuth2Auth(): void {
     const { oauth2 } = this.request;
 
     if (oauth2) {
