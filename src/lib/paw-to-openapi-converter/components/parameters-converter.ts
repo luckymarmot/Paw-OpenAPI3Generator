@@ -44,11 +44,10 @@ export default class ParametersConverter {
 
   private parsePathParams(): void {
     if (this.request.variables.length > 0) {
-      this.request.getVariablesNames().forEach((variableName) => {
-        const variable = this.request.getVariableByName(variableName);
+      this.request.variables.forEach((variable) => {
         if (variable) {
           const newParam: OpenAPI.ParameterObject = {
-            name: variableName,
+            name: variable.name,
             in: 'path',
             required: true,
           };
@@ -74,13 +73,13 @@ export default class ParametersConverter {
   }
 
   private parseHeaders(): void {
-    this.request.headersNames.forEach((headerName: string) => {
+    Object.entries(this.request.headers).forEach(([headerName, headerValue]) => {
       if (headerName.toLowerCase() === 'cookie') {
-        this.parseCookies((this.request.headers[headerName] ?? '') as string);
+        this.parseCookies((headerValue ?? '') as string);
       } else {
         const schema: OpenAPI.SchemaObject = {
           type: 'string',
-          default: this.request.headers[headerName] ?? '',
+          default: headerValue ?? '',
         };
 
         if (headerName.toLowerCase() === 'content-type' && schema.default !== '') {
