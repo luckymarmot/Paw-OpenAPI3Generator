@@ -127,14 +127,14 @@ export default class AuthConverter {
     if (oauth2) {
       this.requirement = {};
       this.key = 'OAuth2';
-      const grantType = AuthConverter.camelCaseToCapital(oauth2.grant_type);
-      const scopes = {};
+      const grantType: string = AuthConverter.camelCaseToCapital(oauth2.grant_type as string);
+      const scopes: MapKeyedWithString<string> = {};
 
-      oauth2.scope.split(' ').forEach((scope) => {
+      (oauth2.scope as string).split(' ').forEach((scope) => {
         scopes[scope] = scope;
       });
 
-      const flows = {};
+      const flows: MapKeyedWithString<OpenAPI.OAuthFlowObject> = {};
       flows[grantType] = {
         authorizationUrl: oauth2.authorization_uri,
         tokenUrl: oauth2.access_token_uri,
