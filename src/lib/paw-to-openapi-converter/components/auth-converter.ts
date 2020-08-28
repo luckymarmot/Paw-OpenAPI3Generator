@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/extensions
 import Paw from '../../../types-paw-api/paw';
 // eslint-disable-next-line import/extensions
-import OpenAPI, { MapKeyedWithString, BasicCredentialsLabel } from '../../../types-paw-api/openapi';
+import OpenAPI, { MapKeyedWithString, BasicCredentialsLabel, OAuth2CredentialsLabel } from '../../../types-paw-api/openapi';
 
 export type AuthConverterType = [
   string,
@@ -125,13 +125,22 @@ export default class AuthConverter {
     const { oauth2 } = this.request;
 
     if (oauth2) {
+      const {
+        scope,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        authorization_uri,
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        access_token_uri,
+        ...restOauth2Values
+      } = oauth2;
+
       this.requirement = {};
       this.key = 'OAuth2';
       const grantType: string = AuthConverter.camelCaseToCapital(oauth2.grant_type as string);
       const scopes: MapKeyedWithString<string> = {};
 
-      (oauth2.scope as string).split(' ').forEach((scope) => {
-        scopes[scope] = scope;
+      (scope as string).split(' ').forEach((singleScope) => {
+        scopes[singleScope] = singleScope;
       });
 
       const flows: MapKeyedWithString<OpenAPI.OAuthFlowObject> = {};
@@ -141,10 +150,16 @@ export default class AuthConverter {
         scopes,
       } as OpenAPI.OAuthFlowObject;
 
+      const securityExample: OpenAPI.ExampleObject = {
+        summary: OAuth2CredentialsLabel,
+        value: restOauth2Values,
+      };
+
       this.scheme = {
         type: 'oauth2',
         flows,
       };
+      this.example = securityExample;
 
       this.requirement[this.key] = [];
 

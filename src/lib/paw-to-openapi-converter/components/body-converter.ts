@@ -14,12 +14,12 @@ export default class BodyConverter {
     this.parseBody(bodyContentType);
   }
 
-  getOutput(): OpenAPI.ResponsesObject {
+  getOutput(): OpenAPI.RequestBodyObject {
     return this.body;
   }
 
   private parseBody(bodyContentType: string): void {
-    let body = '';
+    let body;
 
     switch (bodyContentType.toLowerCase()) {
       case 'application/json':

@@ -100,7 +100,7 @@ export default class PawToOpenapiConverter {
         this.components.securitySchemes[authKey] = authScheme;
       }
       if (authExample && this.components.examples) {
-        this.components.examples[authKey] = authScheme;
+        this.components.examples[authKey] = authExample;
       }
       operation.security = [authRequirement];
     }
