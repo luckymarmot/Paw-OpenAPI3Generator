@@ -1,5 +1,8 @@
 // eslint-disable-next-line import/extensions
 import OpenAPI from '../types-paw-api/openapi';
+// eslint-disable-next-line import/extensions
+import Paw from '../types-paw-api/paw';
+import { convertEnvString } from './paw-utils';
 
 export default class URL {
   hostname: string;
@@ -10,11 +13,40 @@ export default class URL {
 
   fullUrl: string;
 
-  constructor(url: string, parameters: OpenAPI.ParameterObject[]) {
-    this.fullUrl = url;
+  constructor(request: Paw.Request, context: Paw.Context, parameters: OpenAPI.ParameterObject[]) {
+    this.fullUrl = convertEnvString(
+      request.getUrl(true) as DynamicString,
+      context,
+    );
 
-    const match = url.match(/^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?\??$/i);
+    const urlRegex = /^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?\??$/i;
 
+    let match = this.fullUrl.match(urlRegex);
+
+    if (match) {
+      this.parseMatches(match);
+    } else {
+      this.fullUrl = request.urlBase;
+      match = this.fullUrl.match(urlRegex);
+      this.parseMatches(match);
+    }
+
+    this.parseParameters(parameters);
+  }
+
+  public replacePathParam(variableValue: string, variableName: string): void {
+    if (this.pathname.indexOf(`/${variableValue}/`) < 0) {
+      throw new Error('Param cannot be replaced');
+    }
+
+    this.pathname = this.pathname.replace(`/${variableValue}/`, `/{${variableName}}/`);
+  }
+
+  public addPathParam(variableName: string): void {
+    this.pathname = `${this.pathname}{${variableName}}/`;
+  }
+
+  private parseMatches(match: RegExpMatchArray|null) {
     if (match) {
       if (match[2]) {
         let host = 'http';
@@ -37,20 +69,6 @@ export default class URL {
         this.pathname = '/';
       }
     }
-
-    this.parseParameters(parameters);
-  }
-
-  public replacePathParam(variableValue: string, variableName: string): void {
-    if (this.pathname.indexOf(`/${variableValue}/`) < 0) {
-      throw new Error('Param cannot be replaced');
-    }
-
-    this.pathname = this.pathname.replace(`/${variableValue}/`, `/{${variableName}}/`);
-  }
-
-  public addPathParam(variableName: string): void {
-    this.pathname = `${this.pathname}{${variableName}}/`;
   }
 
   private parseParameters(parameters: OpenAPI.ParameterObject[]) {

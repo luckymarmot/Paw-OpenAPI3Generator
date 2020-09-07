@@ -8,6 +8,7 @@ import AuthConverter, { AuthConverterType } from './components/auth-converter';
 import BodyConverter from './components/body-converter';
 import ParametersConverter from './components/parameters-converter';
 import ResponsesConverter from './components/responses-converter';
+import Console from "../console";
 
 export default class PawToOpenapiConverter {
   private readonly info: OpenAPI.InfoObject;
@@ -34,12 +35,7 @@ export default class PawToOpenapiConverter {
 
       const parameters = parametersConverter.getParameters();
 
-      const url = new URL(
-        convertEnvString(
-          request.getUrl(true) as DynamicString,
-          context,
-        ), parameters,
-      );
+      const url = new URL(request, context, parameters);
 
       const body = PawToOpenapiConverter.generateBody(
         request,
