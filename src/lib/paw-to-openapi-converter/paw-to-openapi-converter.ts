@@ -2,6 +2,7 @@
 import Paw from '../../types-paw-api/paw';
 // eslint-disable-next-line import/extensions
 import OpenAPI, { MapKeyedWithString } from '../../types-paw-api/openapi';
+import { convertEnvString } from '../paw-utils';
 import URL from '../url';
 import AuthConverter, { AuthConverterType } from './components/auth-converter';
 import BodyConverter from './components/body-converter';
@@ -23,7 +24,6 @@ export default class PawToOpenapiConverter {
     this.paths = {};
     this.components = {
       securitySchemes: {},
-      examples: {}, // to store securitySchemes values while importing generated file back to Paw
     };
   }
 
@@ -33,14 +33,21 @@ export default class PawToOpenapiConverter {
       const parametersConverter = new ParametersConverter(request);
 
       const parameters = parametersConverter.getParameters();
-      const url = new URL(request.urlBase, parameters);
+
+      const url = new URL(
+        convertEnvString(
+          request.getUrl(true) as DynamicString,
+          context,
+        ), parameters,
+      );
+
       const body = PawToOpenapiConverter.generateBody(
         request,
         parametersConverter.getBodyContentType(),
       );
       const auth = PawToOpenapiConverter.generateAuth(
         request,
-        this.components.examples as MapKeyedWithString<OpenAPI.ExampleObject>,
+        this.components.securitySchemes as MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
       );
       const responses = PawToOpenapiConverter.generateResponses(request);
 
@@ -93,14 +100,11 @@ export default class PawToOpenapiConverter {
       operation.requestBody = body;
     }
 
-    const [authKey, authRequirement, authScheme, authExample] = auth;
+    const [authKey, authRequirement, authScheme] = auth;
 
     if (authKey && authRequirement && authScheme) {
       if (this.components.securitySchemes) {
         this.components.securitySchemes[authKey] = authScheme;
-      }
-      if (authExample && this.components.examples) {
-        this.components.examples[authKey] = authExample;
       }
       operation.security = [authRequirement];
     }
@@ -161,9 +165,9 @@ export default class PawToOpenapiConverter {
 
   static generateAuth(
     request: Paw.Request,
-    existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>,
+    existingSecuritySchemes: MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
   ): AuthConverterType {
-    const authConverter = new AuthConverter(request, existingExamples);
+    const authConverter = new AuthConverter(request, existingSecuritySchemes);
     return authConverter.getOutput();
   }
 

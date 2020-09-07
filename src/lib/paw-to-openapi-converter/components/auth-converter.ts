@@ -1,3 +1,4 @@
+import { Md5 } from 'md5-typescript';
 // eslint-disable-next-line import/extensions
 import Paw from '../../../types-paw-api/paw';
 // eslint-disable-next-line import/extensions
@@ -7,15 +8,14 @@ export type AuthConverterType = [
   string,
   OpenAPI.SecurityRequirementObject,
   OpenAPI.SecuritySchemeObject,
-  OpenAPI.ExampleObject
 ];
 
 export default class AuthConverter {
-  private request: Paw.Request;
+  private readonly request: Paw.Request;
 
   private authFound: boolean;
 
-  private readonly existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>;
+  private readonly existingSecuritySchemes: MapKeyedWithString<OpenAPI.SecuritySchemeObject>;
 
   private key: string;
 
@@ -23,15 +23,13 @@ export default class AuthConverter {
 
   private scheme: OpenAPI.SecuritySchemeObject;
 
-  private example: OpenAPI.ExampleObject;
-
   constructor(
     request: Paw.Request,
-    existingExamples: MapKeyedWithString<OpenAPI.ExampleObject>,
+    existingSecuritySchemes: MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
   ) {
     this.request = request;
     this.authFound = false;
-    this.existingExamples = existingExamples;
+    this.existingSecuritySchemes = existingSecuritySchemes;
 
     this.parseBasicAuth();
     if (!this.authFound) {
@@ -47,53 +45,17 @@ export default class AuthConverter {
       this.key,
       this.requirement,
       this.scheme,
-      this.example,
     ];
   }
 
   private parseBasicAuth(): void {
     if (this.request.httpBasicAuth) {
-      this.key = '';
+      this.key = BasicCredentialsLabel;
       this.requirement = {};
-      let found: boolean = false;
-
-      if (this.existingExamples) {
-        Object.entries(this.existingExamples).forEach(([key, example]) => {
-          const {
-            summary,
-            value,
-          } = example as OpenAPI.ExampleObject;
-
-          if (
-            !found
-            && this.request.httpBasicAuth
-            && summary
-            && summary === BasicCredentialsLabel
-            && value?.username
-            && value?.username === this.request.httpBasicAuth.username
-            && value?.password
-            && value?.password === this.request.httpBasicAuth.password
-          ) {
-            found = true;
-            this.key = key.toString();
-          }
-        });
-      }
-
-      if (!found) {
-        this.key = `BasicAuth${this.existingExamples.length > 0 ? `_${this.existingExamples.length}` : ''}`;
-
-        const securityExample: OpenAPI.ExampleObject = {
-          summary: BasicCredentialsLabel,
-          value: this.request.httpBasicAuth,
-        };
-
-        this.scheme = {
-          type: 'http',
-          scheme: 'basic',
-        };
-        this.example = securityExample;
-      }
+      this.scheme = {
+        type: 'http',
+        scheme: 'basic',
+      };
 
       this.requirement[this.key] = [];
 
@@ -125,41 +87,37 @@ export default class AuthConverter {
     const { oauth2 } = this.request;
 
     if (oauth2) {
-      const {
-        scope,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        authorization_uri,
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        access_token_uri,
-        ...restOauth2Values
-      } = oauth2;
-
       this.requirement = {};
-      this.key = 'OAuth2';
-      const grantType: string = AuthConverter.camelCaseToCapital(oauth2.grant_type as string);
-      const scopes: MapKeyedWithString<string> = {};
+      const keyHash = AuthConverter.generateKeyHash(
+        oauth2.grant_type as string,
+        oauth2.authorization_uri as string,
+        oauth2.access_token_uri as string,
+        oauth2.scope as string,
+      );
+      this.key = `${OAuth2CredentialsLabel} ${keyHash}`;
+      let sameAuthFound = false;
 
-      (scope as string).split(' ').forEach((singleScope) => {
-        scopes[singleScope] = singleScope;
-      });
+      if (this.existingSecuritySchemes && typeof this.existingSecuritySchemes[this.key] !== 'undefined') {
+        sameAuthFound = true;
+        this.scheme = this.existingSecuritySchemes[this.key];
+      }
 
-      const flows: MapKeyedWithString<OpenAPI.OAuthFlowObject> = {};
-      flows[grantType] = {
-        authorizationUrl: oauth2.authorization_uri,
-        tokenUrl: oauth2.access_token_uri,
-        scopes,
-      } as OpenAPI.OAuthFlowObject;
+      if (!sameAuthFound) {
+        const grantType: string = AuthConverter.camelCaseToCapital(oauth2.grant_type as string);
+        const scopes = AuthConverter.convertScopes(oauth2.scope as string);
 
-      const securityExample: OpenAPI.ExampleObject = {
-        summary: OAuth2CredentialsLabel,
-        value: restOauth2Values,
-      };
+        const flows: MapKeyedWithString<OpenAPI.OAuthFlowObject> = {};
+        flows[grantType] = {
+          authorizationUrl: oauth2.authorization_uri,
+          tokenUrl: oauth2.access_token_uri,
+          scopes,
+        } as OpenAPI.OAuthFlowObject;
 
-      this.scheme = {
-        type: 'oauth2',
-        flows,
-      };
-      this.example = securityExample;
+        this.scheme = {
+          type: 'oauth2',
+          flows,
+        };
+      }
 
       this.requirement[this.key] = [];
 
@@ -169,5 +127,19 @@ export default class AuthConverter {
 
   static camelCaseToCapital(string: string) {
     return string.replace(/[_][a-z]/g, (snakeWithLetter) => snakeWithLetter.toUpperCase().replace('_', ''));
+  }
+
+  static convertScopes(pawScopes: string) {
+    const openAPIScopes: MapKeyedWithString<string> = {};
+
+    pawScopes.split(' ').forEach((singlePawScope) => {
+      openAPIScopes[singlePawScope] = singlePawScope;
+    });
+
+    return openAPIScopes;
+  }
+
+  static generateKeyHash(grantType: string, authUrl: string, tokenUrl: string, scopes: string) {
+    return Md5.init(grantType + authUrl + tokenUrl + scopes);
   }
 }

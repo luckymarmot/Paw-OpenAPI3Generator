@@ -52,6 +52,7 @@
     "watch": "onchange 'src/**/*.ts' -- npm run --silent buildAndPaw"
   },
   "dependencies": {
+    "md5-typescript": "^1.0.5",
     "yaml": "^1.10.0"
   }
 }

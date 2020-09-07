@@ -15,8 +15,8 @@ export default class ParametersConverter {
     this.parameters = [];
 
     this.parseQueryParams();
-    this.parsePathParams();
     this.parseHeaders();
+    this.parsePathParams();
   }
 
   getBodyContentType() {
@@ -32,6 +32,7 @@ export default class ParametersConverter {
       const schema: OpenAPI.SchemaObject = {
         type: 'string',
         default: this.request.urlParameters[paramName] ?? '',
+        description: this.request.getVariableByName(paramName)?.description ?? '',
       };
 
       this.parameters.push({
@@ -42,36 +43,6 @@ export default class ParametersConverter {
     });
   }
 
-  private parsePathParams(): void {
-    if (this.request.variables.length > 0) {
-      this.request.variables.forEach((variable) => {
-        if (variable) {
-          const newParam: OpenAPI.ParameterObject = {
-            name: variable.name,
-            in: 'path',
-            required: true,
-          };
-
-          const variableValue = variable.getCurrentValue();
-
-          if (!variable.required) {
-            newParam.example = { // just to inform Paw while importing back that exported file
-              summary: NonRequiredLabel,
-              value: true,
-            };
-          }
-
-          newParam.schema = {
-            type: 'string',
-            default: variableValue ?? '',
-          };
-
-          this.parameters.push(newParam);
-        }
-      });
-    }
-  }
-
   private parseHeaders(): void {
     Object.entries(this.request.headers).forEach(([headerName, headerValue]) => {
       if (headerName.toLowerCase() === 'cookie') {
@@ -80,6 +51,7 @@ export default class ParametersConverter {
         const schema: OpenAPI.SchemaObject = {
           type: 'string',
           default: headerValue ?? '',
+          description: this.request.getVariableByName(headerName)?.description ?? '',
         };
 
         if (headerName.toLowerCase() === 'content-type' && schema.default !== '') {
@@ -121,5 +93,36 @@ export default class ParametersConverter {
 
       this.parameters.push(newParam);
     });
+  }
+
+  private parsePathParams(): void {
+    if (this.request.variables.length > 0) {
+      this.request.variables.forEach((variable) => {
+        if (variable && !this.parameters.some((param) => param.name === variable.name)) {
+          const newParam: OpenAPI.ParameterObject = {
+            name: variable.name,
+            in: 'path',
+            required: true,
+          };
+
+          const variableValue = variable.getCurrentValue();
+
+          if (!variable.required) {
+            newParam.example = { // just to inform Paw while importing back that exported file
+              summary: NonRequiredLabel,
+              value: true,
+            };
+          }
+
+          newParam.schema = {
+            type: 'string',
+            default: variableValue ?? '',
+            description: variable.description ?? '',
+          };
+
+          this.parameters.push(newParam);
+        }
+      });
+    }
   }
 }

@@ -13,7 +13,7 @@ export default class URL {
   constructor(url: string, parameters: OpenAPI.ParameterObject[]) {
     this.fullUrl = url;
 
-    const match = url.match(/^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?$/i);
+    const match = url.match(/^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?\??$/i);
 
     if (match) {
       if (match[2]) {
@@ -32,7 +32,7 @@ export default class URL {
       }
 
       if (match[4]) {
-        this.pathname = decodeURI(URL.addSlashAtEnd(match[4]));
+        this.pathname = decodeURI(URL.addSlashAtEnd(match[4].replace(new RegExp('//', 'g'), '/').replace(new RegExp('\\?.*'), '')));
       } else {
         this.pathname = '/';
       }
@@ -55,7 +55,13 @@ export default class URL {
 
   private parseParameters(parameters: OpenAPI.ParameterObject[]) {
     parameters.forEach((param) => {
-      if (param.in === 'path' && param.name && typeof (param?.schema as OpenAPI.SchemaObject).default !== 'undefined' && this.pathname.indexOf(`{${param.name}}`) < 0) {
+      if (
+        param.in === 'path'
+        && param.name
+        && typeof (param?.schema as OpenAPI.SchemaObject).default !== 'undefined'
+        && this.pathname.indexOf(`{${param.name}}`) < 0
+        && this.hostname.indexOf(`{${param.name}}`) < 0
+      ) {
         const paramName = param.name;
         const paramValue = (param.schema as OpenAPI.SchemaObject).default;
         if (paramValue !== null && (paramValue === '0' || (paramValue as string).length > 0)) {
