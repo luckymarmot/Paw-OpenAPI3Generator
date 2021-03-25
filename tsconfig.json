@@ -4,14 +4,17 @@
     "sourceMap": true,
     "noImplicitAny": true,
     "module": "commonjs",
-    "target": "es5",
+    "target": "ES2018",
+    "resolveJsonModule": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strictNullChecks": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": "src",
+    "paths": {
+      "lib": ["src/lib"]
+    }
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src"]
 }

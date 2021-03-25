@@ -1,51 +1,52 @@
 // eslint-disable-next-line import/extensions
-import Paw from '../../types-paw-api/paw';
+import Paw from 'types/paw'
 // eslint-disable-next-line import/extensions
-import OpenAPI, { MapKeyedWithString } from '../../types-paw-api/openapi';
-import { convertEnvString } from '../paw-utils';
-import URL from '../url';
-import AuthConverter, { AuthConverterType } from './components/auth-converter';
-import BodyConverter from './components/body-converter';
-import ParametersConverter from './components/parameters-converter';
-import ResponsesConverter from './components/responses-converter';
-import Console from "../console";
+import OpenAPI, { MapKeyedWithString } from 'types/openapi'
+import { convertEnvString } from '../paw-utils'
+import URL from '../url'
+import AuthConverter, { AuthConverterType } from './components/auth-converter'
+import BodyConverter from './components/body-converter'
+import ParametersConverter from './components/parameters-converter'
+import ResponsesConverter from './components/responses-converter'
+import Console from '../console'
 
 export default class PawToOpenapiConverter {
-  private readonly info: OpenAPI.InfoObject;
+  private readonly info: OpenAPI.InfoObject
 
-  private readonly paths: OpenAPI.PathsObject;
+  private readonly paths: OpenAPI.PathsObject
 
-  private readonly components: OpenAPI.ComponentsObject;
+  private readonly components: OpenAPI.ComponentsObject
 
   constructor() {
     this.info = {
       title: 'OpenAPI export',
       version: Date.now().toString(),
-    };
-    this.paths = {};
+    }
+    this.paths = {}
     this.components = {
       securitySchemes: {},
-    };
+    }
   }
 
   convert(context: Paw.Context, requests: Paw.Request[]) {
-    this.generateInfo(context);
+    this.generateInfo(context)
     requests.forEach((request: Paw.Request) => {
-      const parametersConverter = new ParametersConverter(request);
+      const parametersConverter = new ParametersConverter(request)
 
-      const parameters = parametersConverter.getParameters();
+      const parameters = parametersConverter.getParameters()
 
-      const url = new URL(request, context, parameters);
+      const url = new URL(request, context, parameters)
 
       const body = PawToOpenapiConverter.generateBody(
         request,
         parametersConverter.getBodyContentType(),
-      );
+      )
       const auth = PawToOpenapiConverter.generateAuth(
         request,
-        this.components.securitySchemes as MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
-      );
-      const responses = PawToOpenapiConverter.generateResponses(request);
+        this.components
+          .securitySchemes as MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
+      )
+      const responses = PawToOpenapiConverter.generateResponses(request)
 
       this.paths[url.pathname] = this.generatePathItem(
         request,
@@ -54,8 +55,8 @@ export default class PawToOpenapiConverter {
         body,
         auth,
         responses,
-      );
-    });
+      )
+    })
   }
 
   generateOutput(): OpenAPI.OpenAPIObject {
@@ -64,12 +65,12 @@ export default class PawToOpenapiConverter {
       info: this.info,
       paths: this.paths,
       components: this.components,
-    };
+    }
   }
 
   private generateInfo(context: Paw.Context): void {
     if (context.document.name) {
-      this.info.title = context.document.name;
+      this.info.title = context.document.name
     }
   }
 
@@ -77,7 +78,7 @@ export default class PawToOpenapiConverter {
     request: Paw.Request,
     parameters: OpenAPI.ParameterObject[],
     url: URL,
-    body: (OpenAPI.RequestBodyObject | null),
+    body: OpenAPI.RequestBodyObject | null,
     auth: AuthConverterType,
     responses: OpenAPI.ResponsesObject,
   ): OpenAPI.PathItemObject {
@@ -86,31 +87,34 @@ export default class PawToOpenapiConverter {
       summary: request.name,
       description: request.description,
       responses,
-    };
+    }
 
     if (parameters.length > 0) {
-      operation.parameters = parameters;
+      operation.parameters = parameters
     }
 
     if (body) {
-      operation.requestBody = body;
+      operation.requestBody = body
     }
 
-    const [authKey, authRequirement, authScheme] = auth;
+    const [authKey, authRequirement, authScheme] = auth
 
     if (authKey && authRequirement && authScheme) {
       if (this.components.securitySchemes) {
-        this.components.securitySchemes[authKey] = authScheme;
+        this.components.securitySchemes[authKey] = authScheme
       }
-      operation.security = [authRequirement];
+      operation.security = [authRequirement]
     }
 
-    let pathItem: OpenAPI.PathItemObject;
+    let pathItem: OpenAPI.PathItemObject
 
     if (this.paths[url.pathname]) {
-      pathItem = this.paths[url.pathname];
-      if (pathItem.servers && !pathItem.servers.some((server) => server.url === url.hostname)) {
-        pathItem.servers.push({ url: url.hostname });
+      pathItem = this.paths[url.pathname]
+      if (
+        pathItem.servers &&
+        !pathItem.servers.some((server) => server.url === url.hostname)
+      ) {
+        pathItem.servers.push({ url: url.hostname })
       }
     } else {
       pathItem = {
@@ -119,56 +123,56 @@ export default class PawToOpenapiConverter {
             url: url.hostname,
           },
         ],
-      };
+      }
     }
 
     switch (request.method) {
       case 'GET':
-        pathItem.get = !pathItem.get ? operation : pathItem.get;
-        break;
+        pathItem.get = !pathItem.get ? operation : pathItem.get
+        break
       case 'POST':
-        pathItem.post = !pathItem.post ? operation : pathItem.post;
-        break;
+        pathItem.post = !pathItem.post ? operation : pathItem.post
+        break
       case 'DELETE':
-        pathItem.delete = !pathItem.delete ? operation : pathItem.delete;
-        break;
+        pathItem.delete = !pathItem.delete ? operation : pathItem.delete
+        break
       case 'OPTIONS':
-        pathItem.options = !pathItem.options ? operation : pathItem.options;
-        break;
+        pathItem.options = !pathItem.options ? operation : pathItem.options
+        break
       case 'HEAD':
-        pathItem.head = !pathItem.head ? operation : pathItem.head;
-        break;
+        pathItem.head = !pathItem.head ? operation : pathItem.head
+        break
       case 'PATCH':
-        pathItem.patch = !pathItem.patch ? operation : pathItem.patch;
-        break;
+        pathItem.patch = !pathItem.patch ? operation : pathItem.patch
+        break
       case 'TRACE':
-        pathItem.trace = !pathItem.trace ? operation : pathItem.trace;
-        break;
+        pathItem.trace = !pathItem.trace ? operation : pathItem.trace
+        break
       default:
-        // nothing
+      // nothing
     }
 
-    return pathItem;
+    return pathItem
   }
 
   static generateBody(
     request: Paw.Request,
     bodyContentType: string,
   ): OpenAPI.RequestBodyObject | null {
-    const bodyConverter = new BodyConverter(request, bodyContentType);
-    return bodyConverter.getOutput();
+    const bodyConverter = new BodyConverter(request, bodyContentType)
+    return bodyConverter.getOutput()
   }
 
   static generateAuth(
     request: Paw.Request,
     existingSecuritySchemes: MapKeyedWithString<OpenAPI.SecuritySchemeObject>,
   ): AuthConverterType {
-    const authConverter = new AuthConverter(request, existingSecuritySchemes);
-    return authConverter.getOutput();
+    const authConverter = new AuthConverter(request, existingSecuritySchemes)
+    return authConverter.getOutput()
   }
 
   static generateResponses(request: Paw.Request): OpenAPI.ResponsesObject {
-    const responsesConverter = new ResponsesConverter(request);
-    return responsesConverter.getOutput();
+    const responsesConverter = new ResponsesConverter(request)
+    return responsesConverter.getOutput()
   }
 }

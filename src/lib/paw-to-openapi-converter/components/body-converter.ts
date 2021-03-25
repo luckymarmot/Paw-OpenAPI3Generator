@@ -1,47 +1,47 @@
 // eslint-disable-next-line import/extensions
-import Paw from '../../../types-paw-api/paw';
+import Paw from 'types/paw.d'
 // eslint-disable-next-line import/extensions
-import OpenAPI from '../../../types-paw-api/openapi';
+import OpenAPI from 'types/openapi.d'
 
 export default class BodyConverter {
-  private request: Paw.Request;
+  private request: Paw.Request
 
-  private body: OpenAPI.RequestBodyObject;
+  private body: OpenAPI.RequestBodyObject
 
   constructor(request: Paw.Request, bodyContentType: string) {
-    this.request = request;
+    this.request = request
 
-    this.parseBody(bodyContentType);
+    this.parseBody(bodyContentType)
   }
 
   getOutput(): OpenAPI.RequestBodyObject {
-    return this.body;
+    return this.body
   }
 
   private parseBody(bodyContentType: string): void {
-    let body;
+    let body
 
     switch (bodyContentType.toLowerCase()) {
       case 'application/json':
-        body = this.request.jsonBody;
-        break;
+        body = this.request.jsonBody
+        break
       case 'application/x-www-form-urlencoded':
-        body = this.request.urlEncodedBody;
-        break;
+        body = this.request.urlEncodedBody
+        break
       case 'multipart/form-data':
-        body = this.request.multipartBody;
-        break;
+        body = this.request.multipartBody
+        break
       default:
-        body = this.request.body;
+        body = this.request.body
     }
 
     if (body) {
-      this.body = { content: {} };
+      this.body = { content: {} }
       this.body.content[bodyContentType] = {
         example: {
           value: body,
         } as OpenAPI.ExampleObject,
-      };
+      }
     }
   }
 }

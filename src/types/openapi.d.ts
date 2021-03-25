@@ -3,10 +3,10 @@
 /**
  * Helper types
  */
-export type MapKeyedWithString<T> = { [key: string]: T };
-export const NonRequiredLabel = 'NonRequired';
-export const BasicCredentialsLabel = 'Basic credentials';
-export const OAuth2CredentialsLabel = 'OAuth2';
+export type MapKeyedWithString<T> = { [key: string]: T }
+export const NonRequiredLabel = 'NonRequired'
+export const BasicCredentialsLabel = 'Basic credentials'
+export const OAuth2CredentialsLabel = 'OAuth2'
 
 /**
  * OpenAPI format
@@ -65,15 +65,15 @@ export interface ServerVariableObject {
 }
 
 export interface ComponentsObject {
-  schemas?: MapKeyedWithString<(SchemaObject | ReferenceObject)>
-  responses?: MapKeyedWithString<(ResponseObject | ReferenceObject)>
-  parameters?: MapKeyedWithString<(ParameterObject | ReferenceObject)>
-  examples?: MapKeyedWithString<(ExampleObject | ReferenceObject)>
-  requestBodies?: MapKeyedWithString<(RequestBodyObject | ReferenceObject)>
-  headers?: MapKeyedWithString<(HeaderObject | ReferenceObject)>
-  securitySchemes?: MapKeyedWithString<(SecuritySchemeObject | ReferenceObject)>
-  links?: MapKeyedWithString<(LinkObject | ReferenceObject)>
-  callbacks?: MapKeyedWithString<(CallbackObject | ReferenceObject)>
+  schemas?: MapKeyedWithString<SchemaObject | ReferenceObject>
+  responses?: MapKeyedWithString<ResponseObject | ReferenceObject>
+  parameters?: MapKeyedWithString<ParameterObject | ReferenceObject>
+  examples?: MapKeyedWithString<ExampleObject | ReferenceObject>
+  requestBodies?: MapKeyedWithString<RequestBodyObject | ReferenceObject>
+  headers?: MapKeyedWithString<HeaderObject | ReferenceObject>
+  securitySchemes?: MapKeyedWithString<SecuritySchemeObject | ReferenceObject>
+  links?: MapKeyedWithString<LinkObject | ReferenceObject>
+  callbacks?: MapKeyedWithString<CallbackObject | ReferenceObject>
 }
 
 export interface PathsObject {
@@ -93,7 +93,7 @@ export interface PathItemObject {
   patch?: OperationObject
   trace?: OperationObject
   servers?: ServerObject[]
-  parameters?: (ParameterObject[] | ReferenceObject[])
+  parameters?: ParameterObject[] | ReferenceObject[]
 }
 
 export interface OperationObject {
@@ -103,9 +103,9 @@ export interface OperationObject {
   externalDocs?: ExternalDocumentationObject
   operationId?: string
   parameters?: (ParameterObject | ReferenceObject)[]
-  requestBody?: (RequestBodyObject | ReferenceObject)
+  requestBody?: RequestBodyObject | ReferenceObject
   responses: ResponsesObject
-  callbacks?: MapKeyedWithString<(CallbackObject | ReferenceObject)>
+  callbacks?: MapKeyedWithString<CallbackObject | ReferenceObject>
   deprecated?: boolean
   security?: SecurityRequirementObject[]
   servers?: ServerObject[]
@@ -123,12 +123,19 @@ export interface ParameterObject {
   required?: boolean
   deprecated?: boolean
   allowEmptyValue?: boolean
-  style?: 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'depObject'
+  style?:
+    | 'matrix'
+    | 'label'
+    | 'form'
+    | 'simple'
+    | 'spaceDelimited'
+    | 'pipeDelimited'
+    | 'depObject'
   explode?: boolean
   allowReserved?: boolean
   schema?: SchemaObject | ReferenceObject
   example?: any
-  examples?: MapKeyedWithString<(ExampleObject | ReferenceObject)>
+  examples?: MapKeyedWithString<ExampleObject | ReferenceObject>
   content?: MapKeyedWithString<MediaTypeObject>
 }
 
@@ -141,13 +148,13 @@ export interface RequestBodyObject {
 export interface MediaTypeObject {
   schema?: SchemaObject | ReferenceObject
   example?: any
-  examples?: MapKeyedWithString<(ExampleObject | ReferenceObject)>
+  examples?: MapKeyedWithString<ExampleObject | ReferenceObject>
   encoding?: MapKeyedWithString<EncodingObject>
 }
 
 export interface EncodingObject {
   contentType?: string
-  headers?: MapKeyedWithString<(HeaderObject | ReferenceObject)>
+  headers?: MapKeyedWithString<HeaderObject | ReferenceObject>
   style?: string
   explode?: boolean
   allowReserved?: boolean
@@ -159,9 +166,9 @@ export interface ResponsesObject {
 
 export interface ResponseObject {
   description: string | null
-  headers: MapKeyedWithString<(HeaderObject | ReferenceObject)> | null
+  headers: MapKeyedWithString<HeaderObject | ReferenceObject> | null
   content: MapKeyedWithString<MediaTypeObject> | null
-  links: MapKeyedWithString<(LinkObject | ReferenceObject)> | null
+  links: MapKeyedWithString<LinkObject | ReferenceObject> | null
 }
 
 export interface CallbackObject {
@@ -194,7 +201,7 @@ export interface HeaderObject {
   allowReserved?: boolean
   schema?: SchemaObject | ReferenceObject
   example?: any
-  examples?: MapKeyedWithString<(ExampleObject | ReferenceObject)>
+  examples?: MapKeyedWithString<ExampleObject | ReferenceObject>
   content?: MapKeyedWithString<MediaTypeObject>
 }
 
@@ -232,7 +239,7 @@ export interface SchemaObject {
   anyOf?: (SchemaObject | ReferenceObject)[]
   not?: (SchemaObject | ReferenceObject)[]
   items?: SchemaObject | ReferenceObject
-  properties?: MapKeyedWithString<(SchemaObject | ReferenceObject)>
+  properties?: MapKeyedWithString<SchemaObject | ReferenceObject>
   additionalProperties?: boolean | SchemaObject | ReferenceObject
   description?: string
   format?: string
@@ -261,25 +268,29 @@ export interface XMLObject {
   wrapped?: boolean
 }
 
-export type SecuritySchemeObject = {
-  type: 'apiKey'
-  description?: string
-  name: string
-  in: 'query' | 'header' | 'cookie'
-} | {
-  type: 'http'
-  description?: string
-  scheme: 'basic' | 'bearer' | string
-  bearerFormat?: string
-} | {
-  type: 'oauth2'
-  description?: string
-  flows: OAuthFlowsObject
-} | {
-  type: 'openIdConnect'
-  description?: string
-  openIdConnectUrl: string
-};
+export type SecuritySchemeObject =
+  | {
+      type: 'apiKey'
+      description?: string
+      name: string
+      in: 'query' | 'header' | 'cookie'
+    }
+  | {
+      type: 'http'
+      description?: string
+      scheme: 'basic' | 'bearer' | string
+      bearerFormat?: string
+    }
+  | {
+      type: 'oauth2'
+      description?: string
+      flows: OAuthFlowsObject
+    }
+  | {
+      type: 'openIdConnect'
+      description?: string
+      openIdConnectUrl: string
+    }
 
 export interface OAuthFlowsObject {
   implicit?: OAuthFlowObject

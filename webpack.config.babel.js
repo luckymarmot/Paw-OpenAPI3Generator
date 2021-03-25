@@ -1,17 +1,18 @@
-import path from 'path'
-import PACKAGE from './package.json'
+const { join } = require('path')
+const extensionConfig = require('./src/config.json')
 
+const { title, identifier } = extensionConfig
 
-const name = PACKAGE.config.extension_name
-const identifier = PACKAGE.config.extension_identifier
+const mode = process.env.NODE_ENV || 'production'
+const target = process.env.BUILD_TARGET === '4' ? 'web' : 'node-webkit'
 
 const config = {
-  mode: 'production',
-  target: 'node-webkit',
+  mode,
+  target,
   entry: './src/index.ts',
-  output:{
-    path: path.join(__dirname, `./dist/${identifier}`),
-    filename: `${name}.js`
+  output: {
+    path: join(__dirname, `./dist/${identifier}`),
+    filename: `${title}.js`,
   },
   module: {
     rules: [
@@ -20,18 +21,16 @@ const config = {
         use: 'babel-loader',
         exclude: /node_modules/,
       },
-    ]
+    ],
   },
-
   resolve: {
-    extensions: [ '.ts', '.js', '.d.ts' ],
+    modules: ['./src/**'],
+    extensions: ['.ts', '.js', '.d.ts'],
   },
-
   devtool: 'inline-source-map',
-
   optimization: {
-    minimize: false
+    minimize: false,
   },
 }
 
-export default config
+module.exports = config
