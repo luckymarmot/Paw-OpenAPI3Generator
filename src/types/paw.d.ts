@@ -1,6 +1,12 @@
-declare module 'json-schema-instantiator'
+declare module 'promise'
 
 declare global {
+  namespace NodeJS {
+    interface Global {
+      location: any
+    }
+  }
+
   function registerImporter(importer: any): void
   function registerCodeGenerator(generator: any): void
 
@@ -484,13 +490,7 @@ declare namespace Paw {
   }
 
   class Generator {
-    identifier: string
-    title: string
-    fileExtension?: string
-    languageHighlighter?: string
-    inputs?: unknown
-    help?: string
-    generate(
+    public generate(
       context: Context,
       requests: Request[],
       options: ExtensionOption,

@@ -52,7 +52,7 @@
   },
   "config": {
     "name": "OpenAPIv3Generator",
-    "title": "OpenAPI v3.x Generatpr",
+    "title": "OpenAPI v3.x",
     "description": "An OpenAPI generator extension for Paw client.",
     "identifier": "com.luckymarmot.PawExtensions.OpenAPIv3Generator",
     "fileExtensions": [
