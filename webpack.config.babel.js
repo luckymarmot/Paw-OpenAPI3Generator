@@ -1,18 +1,22 @@
-const { join } = require('path')
-const extensionConfig = require('./src/config.json')
+import path from 'path'
+import PKG from './package.json'
 
-const { title, identifier } = extensionConfig
+const { name, identifier } = PKG.config
 
-const mode = process.env.NODE_ENV || 'production'
-const target = process.env.BUILD_TARGET === '4' ? 'web' : 'node-webkit'
-
-const config = {
-  mode,
-  target,
+const webpackConfig = {
+  target: 'webworker',
+  devtool: 'none',
   entry: './src/index.ts',
+  stats: {
+    outputPath: true,
+    maxModules: 1,
+  },
   output: {
-    path: join(__dirname, `./dist/${identifier}`),
-    filename: `${title}.js`,
+    path: path.join(__dirname, `dist/${identifier}`),
+    filename: `${name}.js`,
+  },
+  optimization: {
+    minimize: false,
   },
   module: {
     rules: [
@@ -24,13 +28,13 @@ const config = {
     ],
   },
   resolve: {
-    modules: ['./src/**'],
-    extensions: ['.ts', '.js', '.d.ts'],
-  },
-  devtool: 'inline-source-map',
-  optimization: {
-    minimize: false,
+    extensions: ['.ts', '.js', '.json', '.d.ts'],
+    alias: {
+      types: path.resolve(__dirname, 'src/types'),
+      lib: path.resolve(__dirname, 'src/lib'),
+      utils: path.resolve(__dirname, 'src/utils'),
+    },
   },
 }
 
-module.exports = config
+export default webpackConfig
