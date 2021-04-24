@@ -2,6 +2,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import Paw from 'types/paw'
 import EnvironmentManager from './environment'
 import { convertEnvString } from './dynamic-values'
+import logger from './console'
 
 export interface PawURLOptions {
   openApi: OpenAPIV3.Document
@@ -12,56 +13,54 @@ export interface PawURLOptions {
 }
 
 export default class PawURL {
-  hostname: string
-  pathname: string
-  port: string
-  fullUrl: string | DynamicString
-  serverVariables: MapKeyedWithString<OpenAPIV3.ServerVariableObject>
+  public hostname: string = 'https://echo.paw.cloud'
+  public pathname: string
+  public port: string
+  public fullUrl: string
+
   constructor(
-    pathItem: OpenAPIV3.PathItemObject,
-    openApi: OpenAPIV3.Document,
-    pathName: string,
-    envManager: EnvironmentManager,
     request: Paw.Request,
+    context: Paw.Context,
+    parameters: OpenAPIV3.ParameterObject[],
   ) {
-    let server: OpenAPIV3.ServerObject = { url: '' }
-    let match: RegExpMatchArray | null = []
-
-    if (pathItem.servers && pathItem.servers.length > 0) {
-      this.fullUrl = `${PawURL.removeSlashFromEnd(
-        pathItem.servers[0].url,
-      )}${pathName}`
-      // eslint-disable-next-line prefer-destructuring
-      server = pathItem.servers[0]
-    } else if (openApi.servers && openApi.servers.length > 0) {
-      this.fullUrl = `${PawURL.removeSlashFromEnd(
-        openApi.servers[0].url,
-      )}${pathName}`
-      // eslint-disable-next-line prefer-destructuring
-      server = openApi.servers[0]
-    }
-
-    if (server.variables) {
-      this.serverVariables = server.variables
-    }
-
-    this.fullUrl = convertEnvString(
-      this.fullUrl as string,
-      envManager,
-      '',
-      request,
+    const getURL = convertEnvString(
+      request.getUrl(true) as DynamicString,
+      context,
     )
 
-    if (typeof this.fullUrl === 'string') {
-      match = this.fullUrl.match(
-        /^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?$/i,
-      )
+    this.fullUrl = this.createValidURL(getURL)
+
+    const urlRegex = /^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?\??$/i
+
+    let match = this.fullUrl.match(urlRegex)
+
+    if (match) {
+      this.parseMatches(match)
     } else {
-      match = (this.fullUrl as DynamicString)
-        .getEvaluatedString()
-        .match(/^([^:]+):\/\/([^:/]+)(?::([0-9]*))?(?:(\/.*))?$/i)
+      this.fullUrl = request.urlBase
+      match = this.fullUrl.match(urlRegex)
+      this.parseMatches(match)
     }
 
+    this.parseParameters(parameters)
+  }
+
+  public replacePathParam(variableValue: string, variableName: string): void {
+    if (this.pathname.indexOf(`/${variableValue}/`) < 0) {
+      throw new Error('Param cannot be replaced')
+    }
+
+    this.pathname = this.pathname.replace(
+      `/${variableValue}/`,
+      `/{${variableName}}/`,
+    )
+  }
+
+  public addPathParam(variableName: string): void {
+    this.pathname = `${this.pathname}{${variableName}}/`
+  }
+
+  private parseMatches(match: RegExpMatchArray | null) {
     if (match) {
       if (match[2]) {
         let host = 'http'
@@ -79,9 +78,12 @@ export default class PawURL {
       }
 
       if (match[4]) {
-        this.pathname = PawURL.addSlashAtEnd(match[4]).replace(
-          new RegExp('//', 'g'),
-          '/',
+        this.pathname = decodeURI(
+          PawURL.addSlashAtEnd(
+            match[4]
+              .replace(new RegExp('//', 'g'), '/')
+              .replace(new RegExp('\\?.*'), ''),
+          ),
         )
       } else {
         this.pathname = '/'
@@ -89,17 +91,49 @@ export default class PawURL {
     }
   }
 
+  private parseParameters(parameters: OpenAPIV3.ParameterObject[]) {
+    parameters.forEach((param) => {
+      if (
+        param.in === 'path' &&
+        param.name &&
+        typeof (param?.schema as OpenAPIV3.SchemaObject).default !==
+          'undefined' &&
+        this.pathname.indexOf(`{${param.name}}`) < 0 &&
+        this.hostname.indexOf(`{${param.name}}`) < 0
+      ) {
+        const paramName = param.name
+        const paramValue = (param.schema as OpenAPIV3.SchemaObject).default
+        if (
+          paramValue !== null &&
+          (paramValue === '0' || (paramValue as string).length > 0)
+        ) {
+          try {
+            this.replacePathParam(paramValue as string, paramName)
+          } catch (error) {
+            this.addPathParam(paramName)
+          }
+        } else {
+          try {
+            this.replacePathParam('', paramName) // hacky way to try insert empty value in correct place in URL -> try replace "//" with "/{param_name}/"
+          } catch (error) {
+            this.addPathParam(paramName)
+          }
+        }
+      }
+    })
+  }
+
+  private createValidURL(url: string): string {
+    try {
+      return new URL(url).href
+    } catch (error) {
+      return new URL(url, this.hostname).href
+    }
+  }
+
   static addSlashAtEnd(variable: string): string {
     if (variable[variable.length - 1] !== '/') {
       return `${variable}/`
-    }
-
-    return variable
-  }
-
-  static removeSlashFromEnd(variable: string): string {
-    if (variable[variable.length - 1] === '/') {
-      return variable.substr(0, variable.length - 1)
     }
 
     return variable

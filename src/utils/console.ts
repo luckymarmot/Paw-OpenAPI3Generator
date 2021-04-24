@@ -2,6 +2,24 @@ const log = console.log
 
 /**
  * @private
+ * @function cyclicSupport
+ * @summary
+ *
+ * @returns {Object<any>}
+ */
+function cyclicSupport() {
+  const seen = new WeakSet()
+  return function returnValue(key: string, value: unknown) {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return
+      seen.add(value)
+    }
+    return value
+  }
+}
+
+/**
+ * @private
  * @function parseObjects
  * @summary
  *  a function that checks whether a string can be parsed as an object,
@@ -11,7 +29,16 @@ const log = console.log
  */
 function parseObjects(data: unknown): string {
   if (typeof data === 'object') {
-    return JSON.stringify(data, null, 2)
+    const cyclic = JSON.parse(JSON.stringify(data, cyclicSupport(), 2))
+
+    if (Array.isArray(cyclic)) {
+      const arr = cyclic.filter((item) => item !== null)
+      if (arr.length === 0) return 'null'
+      if (arr.length === 1) return JSON.stringify(arr[0], null, 2)
+      return JSON.stringify(arr, null, 2)
+    }
+
+    return JSON.stringify(data, cyclicSupport(), 2)
   }
 
   try {

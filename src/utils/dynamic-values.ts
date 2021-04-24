@@ -79,52 +79,23 @@ export const createFileValues = (): DynamicValue =>
  * @returns {DynamicValue} class instance
  */
 export function convertEnvString(
-  s: string,
-  envManager: EnvironmentManager,
-  defaultValue: string = '',
-  request: Paw.Request,
-): string | DynamicString {
-  const re = /\{([^}]+)\}/g
-  let match
-  const components: DynamicStringComponent[] = []
-  let idx = 0
-
-  // eslint-disable-next-line no-cond-assign
-  while ((match = re.exec(s))) {
-    // push any string here before
-    if (match.index > idx) {
-      components.push(s.substr(idx, match.index - idx))
-    }
-
-    if (envManager.hasEnvironmentVariable(match[1])) {
-      envManager.setEnvironmentVariableValue(match[1], defaultValue)
-      components.push(envManager.getDynamicValue(match[1]))
-    } else {
-      let requestVariable = request.getVariableByName(match[1])
-      if (requestVariable && requestVariable.id) {
-        components.push(
-          new DynamicValue('com.luckymarmot.RequestVariableDynamicValue', {
-            variableUUID: requestVariable.id,
-          }),
-        )
+  dynamicString: DynamicString,
+  context: Paw.Context,
+): string {
+  if (!dynamicString) return ''
+  return dynamicString.components
+    .map((component): string => {
+      if (typeof component === 'string') {
+        return component
       }
-    }
-
-    idx = match.index + match[0].length
-  }
-
-  // add remaining string
-  if (idx < s.length) {
-    components.push(s.substr(idx))
-  }
-
-  // return
-  if (components.length === 0) {
-    return ''
-  }
-  if (components.length === 1 && typeof components[0] === 'string') {
-    return components[0]
-  }
-
-  return createDynamicString(...components)
+      if (component.type === ENVIRONMENT_DYNAMIC_VALUE) {
+        const envVarId = (component as any).environmentVariable
+        const envVar = context.getEnvironmentVariableById(envVarId)
+        if (envVar) {
+          return `{${envVar.name}}`
+        }
+      }
+      return component.getEvaluatedString()
+    })
+    .join('')
 }
