@@ -59,7 +59,14 @@ function extendToJsonSchema(refSchema: any, reference: any): any {
   return schema
 }
 
-function jsonParseCheck(str: string): unknown {
+/**
+ * @private
+ * @function jsonParseCheck
+ * @summary safely parse json string
+ * @param {String} str - a valid json string or not?
+ * @returns {Object<unknown>|String}
+ */
+function jsonParseCheck(str: string): any {
   try {
     return JSON.parse(str)
   } catch (error) {
