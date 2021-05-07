@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "md5-typescript": "^1.0.5",
+    "query-string": "^7.0.0",
     "to-json-schema": "^0.2.5",
     "yaml": "^1.10.0"
   }

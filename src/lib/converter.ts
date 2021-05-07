@@ -1,5 +1,6 @@
 import { OpenAPIV3 } from 'openapi-types'
 import toJsonSchema from 'to-json-schema'
+import qs from 'query-string'
 import Paw from 'types/paw'
 import { logger, PawURL } from 'utils'
 import ParametersConverter from './param-converter'
@@ -16,17 +17,20 @@ type PawToOAS3 = OpenAPIV3.OperationObject & {
  *  a function that includes missing key+value that makes up a requestObject schema and
  *  also includes exampes based.
  *
- * @todo: add proper typings
+ * @todo:
+ *  - add proper typings please
+ *  - add mechanism to detect date-time
  *
  * @param {Object} refSchema - a schema data
  * @param {Object} reference - an object where refSchema is built from
- *
  * @returns {Object}
  */
 function extendToJsonSchema(refSchema: any, reference: any): any {
   const schema = { ...refSchema }
   if (refSchema.type === 'object') {
     const props = schema.properties
+
+    if (!props) return schema
 
     Object.keys(props).forEach((i: string) => {
       if (props[i].type === 'array') {
@@ -62,22 +66,29 @@ function extendToJsonSchema(refSchema: any, reference: any): any {
 /**
  * @private
  * @function jsonParseCheck
- * @summary safely parse json string
+ * @summary
+ * safely parse json string and or query string into objects. this utility
+ * fallsback to string, in which should match a `text/plain` content type.
  * @param {String} str - a valid json string or not?
  * @returns {Object<unknown>|String}
  */
 function jsonParseCheck(str: string): any {
+  // const isQueryString = new RegExp(
+  //   '^?([w-]+(=[w-]*)?(&[w-]+(=[w-]*)?)*)?$',
+  //   'g',
+  // )
   try {
     return JSON.parse(str)
   } catch (error) {
+    // return isQueryString.test(str) ? qs.parse(str) : str
     return str
   }
 }
 
 /**
  * @function buildDocumentInfoObject
- * @summary
- * @param {Object<Paw.Context>} context - an instance of Paw Context object
+ * @summary a function that builds openapi document info object
+ * @param {Object<Paw.Context>} context - an instance of Paw Context object.
  * @returns {Object<OpenAPIV3.InfoObject>}
  */
 export function buildDocumentInfoObject(
@@ -100,8 +111,8 @@ export function buildDocumentInfoObject(
  * @function getServers
  * @summary
  *
- * @param {Array<Paw.Request>} requests - an array of Paw Requests
- * @param {Object<Paw.Context>} context - an instance of Paw Context object
+ * @param {Array<Paw.Request>} requests - an array of Paw Requests.
+ * @param {Object<Paw.Context>} context - an instance of Paw Context object.
  *
  * @returns {Array<OpenAPIV3.ServerObject>}
  */
@@ -206,54 +217,110 @@ export function buildRequestBodyObject(
 /**
  * @function buildResponseObject
  * @summary
+ * a function that builds a singline response object based on
+ * httpexchange's response body content type.
+ *
+ * @param {String} contentType -
+ * @param {Object|String} getResponseType -
+ *
+ * @returns {Object<OpenAPIV3.RequestBodyObject>}
+ */
+function buildResponseObject(
+  media: string,
+  content: any,
+): OpenAPIV3.ResponseObject {
+  // If the response is an array, build a schema from the first item in the collection.
+  const responseSchema =
+    Array.isArray(content) && content.length > 0
+      ? toJsonSchema(content[0])
+      : toJsonSchema(content)
+
+  // utilize the built schema, extend it to comply with oas3 schema ref
+  const schema =
+    Array.isArray(content) && content.length > 0
+      ? extendToJsonSchema(responseSchema, content[0])
+      : extendToJsonSchema(responseSchema, content)
+  return {
+    description: '',
+    content: {
+      [media]: {
+        schema: Array.isArray(content)
+          ? { type: 'array', items: { ...schema } }
+          : { ...schema },
+      },
+    },
+  }
+}
+
+/**
+ * @function buildResponseObject
+ * @summary
  * @param {Object<Paw.Request>}  request - an instance of Paw request.
  * @returns {Object<OpenAPIV3.ResponsesObject>}
  */
-export function buildResponseObject(
+export function buildResponsesObject(
   request: Paw.Request,
 ): OpenAPIV3.ResponsesObject {
-  let schema = {}
   const getHttpExchange = request.getLastExchange()
 
-  logger.log('getHttpExchange', getHttpExchange)
-
   if (!getHttpExchange) {
-    return {
-      200: { description: '' },
-    }
+    return { 200: { description: '' } }
   }
 
   const getContentType = Object.keys(getHttpExchange.responseHeaders)
     .filter((header) => header.toLowerCase() === 'content-type')
     .map((header) => getHttpExchange.responseHeaders[header])
 
-  const statusCode = getHttpExchange.responseStatusCode
+  const getHeaders = Object.keys(getHttpExchange.responseHeaders)
+    .map((header) => ({
+      key: header,
+      value: {
+        description: '',
+        schema: {
+          type: typeof getHttpExchange.responseHeaders[header],
+          example: getHttpExchange.responseHeaders[header],
+        },
+      },
+    }))
+    .reduce(
+      (acc, curr) => ({ ...acc, [curr.key]: curr.value }),
+      Object.create({}) as OpenAPIV3.HeaderObject,
+    )
+
+  const statusCode = getHttpExchange.responseStatusCode.toString()
   const contentType =
     getContentType.length > 0 ? getContentType[0] : 'text/plain'
 
-  const responses = {
+  const responses: OpenAPIV3.ResponsesObject = {
     [statusCode]: {
       description: '',
-      content: {},
     },
   }
 
   const getResponseType = jsonParseCheck(getHttpExchange.responseBody)
+  const isJSON = new RegExp('(application/json)', 'g')
+  const isURLEncoded = new RegExp('(application/x-www-form-urlencoded)', 'g')
 
-  if (
-    contentType === 'application/json' &&
-    typeof getResponseType === 'object'
-  ) {
-    const responseBody = toJsonSchema(getResponseType)
-    schema = extendToJsonSchema(responseBody, getResponseType)
-    responses[statusCode].content = {
-      [contentType]: { schema },
-    }
-  }
-
-  if (Object.keys(responses[statusCode].content).length === 0) {
-    // @ts-ignore
-    delete responses[statusCode].content
+  switch (true) {
+    case isJSON.test(contentType) && typeof getResponseType === 'object':
+    case isURLEncoded.test(contentType) && typeof getResponseType === 'object':
+      responses[statusCode] = {
+        ...buildResponseObject(contentType, getResponseType),
+        headers: getHeaders as { [key: string]: OpenAPIV3.HeaderObject },
+      }
+      break
+    default:
+      responses[statusCode] = {
+        description: '',
+        content: {
+          [contentType]: {
+            example: {
+              value: getResponseType,
+            },
+          },
+        },
+      }
+      break
   }
 
   return responses
@@ -269,20 +336,10 @@ export function buildParameterObject(): OpenAPIV3.ParameterObject[] {
 }
 
 /**
- * @function buildOperationObject
- * @summary
- * @param {Object<PawToOAS3>} request - an extended version of PathItemObject
- * @returns {Object<OpenAPIV3.OperationObject>}
- */
-export function buildOperationObject(
-  request: PawToOAS3,
-): OpenAPIV3.OperationObject {
-  return {}
-}
-
-/**
  * @function buildPathItemObject
  * @summary
+ * - is a function where `pathItemObject` and `operationObject` are extracted from paw request.
+ * - it maps request path and methods which are utilized  to build the operationObject.
  *
  * @param {Array<Paw.Request>} requests - an array of Paw Requests
  * @param {Object<Paw.Context>} context - an instance of Paw Context object
@@ -308,7 +365,7 @@ export function buildPathItemObject(
     const getPathPrefix = new RegExp(/(\/api\/v\d+)/, 'g')
 
     const requestBody = buildRequestBodyObject(item)
-    const responses = buildResponseObject(item)
+    const responses = buildResponsesObject(item)
 
     const output = {
       method: method as string,
@@ -343,16 +400,25 @@ export function buildPathItemObject(
     accumulator[requestItem.path] = accumulator[requestItem.path] || {}
 
     const key = (requestItem.method as string).toLowerCase()
-    accumulator[requestItem.path][key] = { ...requestItem }
+    accumulator[requestItem.path][key] = {
+      ...requestItem,
+    } as OpenAPIV3.OperationObject
 
     delete accumulator[requestItem.path][key].path
     delete accumulator[requestItem.path][key].method
     return accumulator
   }
 
-  const a = [...request]
+  return [...request]
     .map(mapRequestData)
     .reduce(mapRequestMethods, Object.create({}) as OpenAPIV3.PathItemObject)
+}
 
-  return a
+export function buildSecurityScheme(
+  request: Paw.Request,
+): OpenAPIV3.SecuritySchemeObject {
+  return {
+    type: 'http',
+    scheme: 'http',
+  }
 }
