@@ -289,7 +289,9 @@ export function buildResponsesObject(
 
   const statusCode = getHttpExchange.responseStatusCode.toString()
   const contentType =
-    getContentType.length > 0 ? getContentType[0] : 'text/plain'
+    getContentType.length > 0
+      ? getContentType[0].replace(/(; .*)$/g, '')
+      : 'text/plain'
 
   const responses: OpenAPIV3.ResponsesObject = {
     [statusCode]: {
