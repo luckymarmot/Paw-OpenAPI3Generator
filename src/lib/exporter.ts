@@ -1,8 +1,10 @@
+import { OpenAPIV3 } from 'openapi-types'
 import Paw from 'types/paw'
 import config from '../paw.config'
 import {
   buildDocumentInfoObject,
   buildPathItemObject,
+  buildSecurityShemeObject,
   buildServerObject,
 } from './converter'
 
@@ -34,6 +36,12 @@ export default class OpenAPIv3Generator implements Paw.Generator {
     const info = buildDocumentInfoObject(context)
     const servers = buildServerObject(requests, context) || []
     const paths = buildPathItemObject(requests, context)
+    const securitySchemes = buildSecurityShemeObject(requests)
+
+    const components: OpenAPIV3.ComponentsObject = {}
+    if (Object.keys(securitySchemes).length > 0) {
+      components.securitySchemes = { ...securitySchemes }
+    }
 
     return JSON.stringify(
       {
@@ -41,6 +49,7 @@ export default class OpenAPIv3Generator implements Paw.Generator {
         info,
         servers,
         paths,
+        components,
       },
       null,
       2,

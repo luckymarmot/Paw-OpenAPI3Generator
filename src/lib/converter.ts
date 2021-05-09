@@ -10,6 +10,8 @@ type PawToOAS3 = OpenAPIV3.OperationObject & {
   method: string
 }
 
+const OAUTH2_DEFAULT_LABEL = 'oauth2_auth'
+
 /**
  * @private
  * @function extendToJsonSchema
@@ -33,6 +35,11 @@ function extendToJsonSchema(refSchema: any, reference: any): any {
     if (!props) return schema
 
     Object.keys(props).forEach((i: string) => {
+      if (props[i].type === 'null' || props[i].type === 'undefined') {
+        props[i].nullable = true
+        delete props[i].type
+      }
+
       if (props[i].type === 'array') {
         props[i].type =
           reference[i].length > 0 ? typeof reference[i][0] : 'string'
@@ -73,14 +80,22 @@ function extendToJsonSchema(refSchema: any, reference: any): any {
  * @returns {Object<unknown>|String}
  */
 function jsonParseCheck(str: string): any {
-  // const isQueryString = new RegExp(
-  //   '^?([w-]+(=[w-]*)?(&[w-]+(=[w-]*)?)*)?$',
-  //   'g',
-  // )
+  const isQueryString = new RegExp(
+    /^\?([\w-]+(=[\w-]*)?(&[\w-]+(=[\w-]*)?)*)?$/,
+    'g',
+  )
+
   try {
     return JSON.parse(str)
   } catch (error) {
-    // return isQueryString.test(str) ? qs.parse(str) : str
+    if (/^(\?.*)/g.test(str) && isQueryString.test(str)) {
+      return qs.parse(str)
+    }
+
+    if (isQueryString.test(`?${str}`)) {
+      return qs.parse(str)
+    }
+
     return str
   }
 }
@@ -368,6 +383,22 @@ export function buildPathItemObject(
 
     const requestBody = buildRequestBodyObject(item)
     const responses = buildResponsesObject(item)
+    const security: OpenAPIV3.SecurityRequirementObject[] = []
+
+    /**
+     * @todo:
+     * - oauth2: placing this security requirement here for now because it's the only
+     *   security type that is identifiable in Paw.Request instance.
+     *
+     * - `apiKey` and `openIdConnect` types doesn't seem to be supported in `Paw.Request`
+     *   which doesn't allow the extension to evaluate a request's security scheme.
+     *
+     * - `http` type is evaluated from the request parameters.
+     */
+    if (item.oauth2) {
+      const getOauth2Scopes = (item.oauth2.scope as string).split(',') || []
+      security.push({ [OAUTH2_DEFAULT_LABEL]: [...getOauth2Scopes] })
+    }
 
     const output = {
       method: method as string,
@@ -380,7 +411,7 @@ export function buildPathItemObject(
       parameters,
       requestBody,
       responses,
-      security: [],
+      security,
     }
 
     if (!requestBody) {
@@ -416,11 +447,89 @@ export function buildPathItemObject(
     .reduce(mapRequestMethods, Object.create({}) as OpenAPIV3.PathItemObject)
 }
 
-export function buildSecurityScheme(
-  request: Paw.Request,
-): OpenAPIV3.SecuritySchemeObject {
-  return {
-    type: 'http',
-    scheme: 'http',
+/**
+ * @function buildSecuritySchemeAndRequirementsObject
+ * @summary
+ * @returns {Object<OpenAPIv3.SecurityDefinitionsObject>}
+ */
+export function buildSecurityShemeObject(requests: Paw.Request[]): any {
+  type SecuritySchemeMapping = {
+    label: string
+    value: OpenAPIV3.SecuritySchemeObject | null
   }
+
+  /**
+   * @function getOauth2Schema
+   * a helper function that extracts oauth2 `SecurityDefinitionsObject` from Paw.Request.
+   * @todo:
+   * - shouldn't we be able to set different types of oauth flows?
+   *   see `OpenAPIV3.SecurityDefinitionsObject`, Paw.Request doesn't change/update
+   *   `grant_type` value.
+   */
+  function getOauth2Schema(auth: OAuth2) {
+    const scopes = (auth.scope as string).split(',') || []
+    const oauth2Object = {
+      type: 'oauth2',
+      flows: {
+        implicit: {
+          authorizationUrl: auth.authorization_uri,
+          scopes: scopes.reduce(
+            (acc, curr) => ({
+              ...acc,
+              [curr]: 'scope description',
+            }),
+            {},
+          ),
+        },
+      },
+    }
+
+    return {
+      label: OAUTH2_DEFAULT_LABEL,
+      value: oauth2Object as OpenAPIV3.SecuritySchemeObject,
+    }
+  }
+
+  /**
+   * @function mapRequestSecurityData
+   */
+  function mapRequestSecurityData(
+    request: Paw.Request,
+  ): SecuritySchemeMapping | null {
+    let builtSchema = null
+
+    if (request.oauth2) {
+      builtSchema = getOauth2Schema(request.oauth2)
+    }
+
+    return builtSchema
+  }
+
+  function filterDuplicates(
+    item: SecuritySchemeMapping,
+    index: number,
+    array: SecuritySchemeMapping[],
+  ): boolean {
+    return array.findIndex((i) => i.label === item.label) === index
+  }
+
+  /**
+   * @function mapSecuritySchema
+   */
+  function mapSecuritySchema(acc: any, curr: any) {
+    const schema = { ...acc, [curr.label]: { ...curr } }
+    delete schema[curr.label].label
+    return schema
+  }
+
+  const output = [...requests]
+    .map(mapRequestSecurityData)
+    .filter((item: SecuritySchemeMapping) => item !== null)
+    .filter(filterDuplicates)
+    .reduce(
+      mapSecuritySchema,
+      {} as { [key: string]: OpenAPIV3.SecuritySchemeObject },
+    )
+
+  return output
 }
