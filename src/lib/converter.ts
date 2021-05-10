@@ -2,7 +2,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import toJsonSchema from 'to-json-schema'
 import qs from 'query-string'
 import Paw from 'types/paw'
-import { logger, PawURL } from 'utils'
+import { PawURL } from 'utils'
 
 type PawToOAS3 = OpenAPIV3.OperationObject & {
   path: string
@@ -31,7 +31,7 @@ function extendToJsonSchema(refSchema: any, reference: any): any {
   if (refSchema.type === 'object') {
     const props = schema.properties
 
-    if (!props) return schema
+    if (!props) return { ...schema }
 
     Object.keys(props).forEach((i: string) => {
       if (props[i].type === 'null' || props[i].type === 'undefined') {
@@ -206,9 +206,7 @@ export function buildServerObject(
     )
   }
 
-  return [...requests]
-    .map(mapServers)
-    .filter(filterDuplicates) as OpenAPIV3.ServerObject[]
+  return [...requests].map(mapServers).filter(filterDuplicates)
 }
 
 /**
@@ -242,7 +240,7 @@ export function buildRequestBodyObject(
       ) as OpenAPIV3.SchemaObject,
     }
 
-    return output as OpenAPIV3.RequestBodyObject
+    return output
   }
 
   return undefined
@@ -383,18 +381,18 @@ export function buildParameterObjectArray(
     headers: RequestParameter,
   ): OpenAPIV3.ParameterObject[] {
     if (Object.keys(headers).length === 0) return []
-    return Object.keys(headers).map((name) => ({
-      name,
-      in: 'header',
-      schema: {
-        type:
-          toJsonSchema(headers[name]).type !== null
-            ? toJsonSchema(headers[name]).type
-            : 'string',
-        default: headers[name],
-        description: '',
-      },
-    })) as OpenAPIV3.ParameterObject[]
+    return Object.keys(headers).map((name) => {
+      const getType = toJsonSchema(headers[name])
+      return {
+        name,
+        in: 'header',
+        schema: {
+          type: getType && getType.type !== 'null' ? getType.type : 'string',
+          default: headers[name].toString() || '',
+          description: '',
+        },
+      }
+    }) as OpenAPIV3.ParameterObject[]
   }
 
   /**
@@ -404,35 +402,28 @@ export function buildParameterObjectArray(
    *
    * @todo - find a way to access request variable type to avoid using conditional checks.
    */
-  function fromPathParams(request: Paw.Request): OpenAPIV3.ParameterObject[] {
-    const variables = request.getVariablesNames() || []
+  function fromPathParams(req: Paw.Request): OpenAPIV3.ParameterObject[] {
+    const variables = req.getVariablesNames() || []
     if (variables.length === 0) return []
 
     const createObject = variables
       .map((name: string) => {
-        const variable = request.getVariableByName(name) as Paw.RequestVariable
+        const variable = req.getVariableByName(name) as Paw.RequestVariable
         const isTruthy = isVariableInString(
-          request.getUrlBase(true) as DynamicString,
+          req.getUrlBase(true) as DynamicString,
           variable,
         )
 
         if (!isTruthy) return null
 
         const currentValue = variable.getCurrentValue()
-
+        const getType = toJsonSchema(currentValue)
         return {
           name,
           in: 'path',
           required: variable.required,
           schema: {
-            /**
-             * @todo
-             * how to access request variable type? all types will fall back to string
-             */
-            type:
-              toJsonSchema(currentValue).type !== null
-                ? toJsonSchema(currentValue).type
-                : 'string',
+            type: getType && getType.type !== 'null' ? getType.type : 'string',
             default: currentValue || '',
             description: variable.description || '',
           },
@@ -452,19 +443,18 @@ export function buildParameterObjectArray(
   function fromQueryParams(queryString: string): OpenAPIV3.ParameterObject[] {
     if (queryString.trim() === '') return []
     const createQsObject = qs.parse(queryString)
-    logger.log(toJsonSchema(createQsObject['additionalMetadata']))
-    return Object.keys(createQsObject).map((name) => ({
-      name,
-      in: 'query',
-      schema: {
-        type:
-          toJsonSchema(createQsObject[name]).type !== 'null'
-            ? toJsonSchema(createQsObject[name]).type
-            : 'string',
-        default: createQsObject[name] !== 'null' ? createQsObject[name] : '',
-        description: '',
-      },
-    })) as OpenAPIV3.ParameterObject[]
+    return Object.keys(createQsObject).map((name) => {
+      const getType = toJsonSchema(createQsObject[name])
+      return {
+        name,
+        in: 'query',
+        schema: {
+          type: getType && getType.type !== 'null' ? getType.type : 'string',
+          default: createQsObject[name]?.toString() || '',
+          description: '',
+        },
+      }
+    }) as OpenAPIV3.ParameterObject[]
   }
 
   return ([] as OpenAPIV3.ParameterObject[]).concat(
@@ -648,7 +638,7 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
     return { ...acc, [curr.label]: { ...curr.value } }
   }
 
-  const output = [...requests]
+  return [...requests]
     .map(mapRequestSecurityData)
     .filter((item: SecuritySchemeMapping) => item !== null)
     .filter(filterDuplicates)
@@ -656,6 +646,4 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
       mapSecuritySchema,
       {} as { [key: string]: OpenAPIV3.SecuritySchemeObject },
     )
-
-  return output
 }

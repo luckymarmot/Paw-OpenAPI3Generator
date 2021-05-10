@@ -1,6 +1,4 @@
-import EnvironmentManager from './environment'
 import Paw from 'types/paw'
-import logger from './console'
 
 const ENVIRONMENT_DYNAMIC_VALUE =
   'com.luckymarmot.EnvironmentVariableDynamicValue'

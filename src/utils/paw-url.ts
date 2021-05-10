@@ -2,7 +2,6 @@ import { OpenAPIV3 } from 'openapi-types'
 import Paw from 'types/paw'
 import EnvironmentManager from './environment'
 import { convertEnvString } from './dynamic-values'
-import logger from './console'
 
 export interface PawURLOptions {
   openApi: OpenAPIV3.Document

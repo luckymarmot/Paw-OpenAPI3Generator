@@ -27,7 +27,7 @@ export function createGroup(
     -1,
   )
 
-  let objectvalue = accumulator[occurence] as CreateRequestGroupType
+  let objectvalue = accumulator[occurence]
   if (occurence >= 0) {
     objectvalue.paths = objectvalue.paths.concat(current.paths)
     return accumulator
@@ -41,13 +41,3 @@ export function createGroup(
   accumulator = accumulator.concat([currentObject as never])
   return accumulator
 }
-
-// request body utility
-
-// parameter utilities
-
-export function paramInHeader(): void {}
-
-export function paramInPath(): void {}
-
-export function paramInCookie(): void {}
