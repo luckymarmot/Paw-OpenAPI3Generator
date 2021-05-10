@@ -3,7 +3,6 @@ import toJsonSchema from 'to-json-schema'
 import qs from 'query-string'
 import Paw from 'types/paw'
 import { logger, PawURL } from 'utils'
-import ParametersConverter from './param-converter'
 
 type PawToOAS3 = OpenAPIV3.OperationObject & {
   path: string
@@ -101,6 +100,27 @@ function jsonParseCheck(str: string): any {
 }
 
 /**
+ * @private
+ * @function isVariableInString
+ * @summary
+ *
+ * @param {Object<DynamicString>} dynamicString
+ * @param variable
+ * @returns
+ */
+function isVariableInString(
+  dynamicString: DynamicString,
+  variable: Paw.RequestVariable,
+) {
+  return !!dynamicString.components.find(
+    (component: DynamicStringComponent) =>
+      typeof component === 'object' &&
+      component.type === 'com.luckymarmot.RequestVariableDynamicValue' &&
+      component.variableUUID === variable.id,
+  )
+}
+
+/**
  * @function buildDocumentInfoObject
  * @summary a function that builds openapi document info object
  * @param {Object<Paw.Context>} context - an instance of Paw Context object.
@@ -140,8 +160,7 @@ export function buildServerObject(
    *  - an array map callback function to map servers used in the requests.
    */
   function mapServers(item: Paw.Request): OpenAPIV3.ServerObject {
-    const paramCoverter = new ParametersConverter(item)
-    const parameters = paramCoverter.getParameters()
+    const parameters = buildParameterObjectArray(item)
     const requestURL = new PawURL(item, context, parameters)
 
     const getBasePath = new RegExp(/(\/api\/v\d+)/, 'g')
@@ -344,12 +363,115 @@ export function buildResponsesObject(
 }
 
 /**
- * @function buildParameterObject
+ * @function buildParameterObjectArray
  * @summary
  * @returns {Array<OpenAPIV3.ParameterObject>}
  */
-export function buildParameterObject(): OpenAPIV3.ParameterObject[] {
-  return []
+export function buildParameterObjectArray(
+  request: Paw.Request,
+): OpenAPIV3.ParameterObject[] {
+  type RequestParameter = { [key: string]: string | DynamicString }
+
+  /**
+   * @function fromHeaderParams
+   * a helper function that converts Paw.Request headers to
+   * an openapi parameter object.
+   *
+   * @todo - find a way to access request variable type to avoid using conditional checks.
+   */
+  function fromHeaderParams(
+    headers: RequestParameter,
+  ): OpenAPIV3.ParameterObject[] {
+    if (Object.keys(headers).length === 0) return []
+    return Object.keys(headers).map((name) => ({
+      name,
+      in: 'header',
+      schema: {
+        type:
+          toJsonSchema(headers[name]).type !== null
+            ? toJsonSchema(headers[name]).type
+            : 'string',
+        default: headers[name],
+        description: '',
+      },
+    })) as OpenAPIV3.ParameterObject[]
+  }
+
+  /**
+   * @function fromPathParams
+   * a helper function that converts Paw.Request path variables to
+   * an openapi parameter object.
+   *
+   * @todo - find a way to access request variable type to avoid using conditional checks.
+   */
+  function fromPathParams(request: Paw.Request): OpenAPIV3.ParameterObject[] {
+    const variables = request.getVariablesNames() || []
+    if (variables.length === 0) return []
+
+    const createObject = variables
+      .map((name: string) => {
+        const variable = request.getVariableByName(name) as Paw.RequestVariable
+        const isTruthy = isVariableInString(
+          request.getUrlBase(true) as DynamicString,
+          variable,
+        )
+
+        if (!isTruthy) return null
+
+        const currentValue = variable.getCurrentValue()
+
+        return {
+          name,
+          in: 'path',
+          required: variable.required,
+          schema: {
+            /**
+             * @todo
+             * how to access request variable type? all types will fall back to string
+             */
+            type:
+              toJsonSchema(currentValue).type !== null
+                ? toJsonSchema(currentValue).type
+                : 'string',
+            default: currentValue || '',
+            description: variable.description || '',
+          },
+        }
+      })
+      .filter((item) => item !== null)
+    return createObject as OpenAPIV3.ParameterObject[]
+  }
+
+  /**
+   * @function fromQueryParams
+   * a helper function that converts Paw.Request query params to
+   * an openapi parameter object.
+   *
+   * @todo - find a way to access request variable type to avoid using conditional checks.
+   */
+  function fromQueryParams(queryString: string): OpenAPIV3.ParameterObject[] {
+    if (queryString.trim() === '') return []
+    const createQsObject = qs.parse(queryString)
+    logger.log(toJsonSchema(createQsObject['additionalMetadata']))
+    return Object.keys(createQsObject).map((name) => ({
+      name,
+      in: 'query',
+      schema: {
+        type:
+          toJsonSchema(createQsObject[name]).type !== 'null'
+            ? toJsonSchema(createQsObject[name]).type
+            : 'string',
+        default: createQsObject[name] !== 'null' ? createQsObject[name] : '',
+        description: '',
+      },
+    })) as OpenAPIV3.ParameterObject[]
+  }
+
+  return ([] as OpenAPIV3.ParameterObject[]).concat(
+    fromQueryParams(request.urlQuery),
+    fromHeaderParams(request.headers),
+    fromPathParams(request),
+  )
 }
 
 /**
@@ -374,8 +496,7 @@ export function buildPathItemObject(
   function mapRequestData(item: Paw.Request): PawToOAS3 {
     const { method, description, id, name } = item
 
-    const paramCoverter = new ParametersConverter(item)
-    const parameters = paramCoverter.getParameters()
+    const parameters = buildParameterObjectArray(item)
     const requestURL = new PawURL(item, context, parameters)
 
     const getRequestPath = requestURL.pathname
@@ -396,7 +517,8 @@ export function buildPathItemObject(
      * - `http` type is evaluated from the request parameters.
      */
     if (item.oauth2) {
-      const getOauth2Scopes = (item.oauth2.scope as string).split(',') || []
+      const getOauth2Scopes =
+        (item.oauth2.scope as string).replace(/\'/gi, '').split(',') || []
       security.push({ [OAUTH2_DEFAULT_LABEL]: [...getOauth2Scopes] })
     }
 
@@ -467,7 +589,7 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
    *   `grant_type` value.
    */
   function getOauth2Schema(auth: OAuth2) {
-    const scopes = (auth.scope as string).split(',') || []
+    const scopes = (auth.scope as string).replace(/\'/gi, '').split(',') || []
     const oauth2Object = {
       type: 'oauth2',
       flows: {
@@ -492,6 +614,7 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
 
   /**
    * @function mapRequestSecurityData
+   * an array callback that builds security scheme object based off paw request object.
    */
   function mapRequestSecurityData(
     request: Paw.Request,
@@ -505,6 +628,10 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
     return builtSchema
   }
 
+  /**
+   * @function filterDuplicates
+   * an array callback that removes null objects from an array
+   */
   function filterDuplicates(
     item: SecuritySchemeMapping,
     index: number,
@@ -515,11 +642,10 @@ export function buildSecurityShemeObject(requests: Paw.Request[]): any {
 
   /**
    * @function mapSecuritySchema
+   * - an array reduce callback to produce a proper SecuritySchemeObject
    */
   function mapSecuritySchema(acc: any, curr: any) {
-    const schema = { ...acc, [curr.label]: { ...curr } }
-    delete schema[curr.label].label
-    return schema
+    return { ...acc, [curr.label]: { ...curr.value } }
   }
 
   const output = [...requests]

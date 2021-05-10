@@ -36,9 +36,9 @@ export default class OpenAPIv3Generator implements Paw.Generator {
     const info = buildDocumentInfoObject(context)
     const servers = buildServerObject(requests, context) || []
     const paths = buildPathItemObject(requests, context)
-    const securitySchemes = buildSecurityShemeObject(requests)
-
     const components: OpenAPIV3.ComponentsObject = {}
+
+    const securitySchemes = buildSecurityShemeObject(requests)
     if (Object.keys(securitySchemes).length > 0) {
       components.securitySchemes = { ...securitySchemes }
     }

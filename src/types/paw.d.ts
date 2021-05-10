@@ -49,6 +49,7 @@ declare global {
     constructor(type: string, properties?: { [key: string]: any })
     getEvaluatedString(): string
     copy(): DynamicValue
+    variableUUID: string
   }
 
   class NetworkHTTPRequest {}
