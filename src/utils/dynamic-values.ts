@@ -65,7 +65,7 @@ export const createFileValues = (): DynamicValue =>
   createDynamicValue(FILE_DYNAMIC_VALUE, { bookmarkData: null })
 
 /**
- * @exports transformString
+ * @exports convertEnvString
  * @summary
  *
  * @param {Object<TransformStringType>} opts
@@ -74,7 +74,7 @@ export const createFileValues = (): DynamicValue =>
  * @param {String} opts.stringInput
  * @param {Object<Paw.Request>} opts.requestInput
  *
- * @returns {DynamicValue} class instance
+ * @returns {string}
  */
 export function convertEnvString(
   dynamicString: DynamicString,

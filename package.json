@@ -61,6 +61,7 @@
       "yaml",
       "yml"
     ],
+    "languageHighlighter": "json",
     "inputs": "json",
     "help": "https://github.com/luckymarmot/Paw-OpenAPI3Generator/wiki",
     "outputDir": "\"/Library/Containers/com.luckymarmot.Paw/Data/Library/Application Support/com.luckymarmot.Paw/Extensions\""

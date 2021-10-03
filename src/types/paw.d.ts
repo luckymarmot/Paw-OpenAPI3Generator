@@ -50,6 +50,8 @@ declare global {
     getEvaluatedString(): string
     copy(): DynamicValue
     variableUUID: string
+    // @todo: confirm whether bookmarkData field should be accessed publicly
+    bookmarkData?: string
   }
 
   class NetworkHTTPRequest {}

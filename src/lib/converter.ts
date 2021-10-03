@@ -224,26 +224,78 @@ export function buildRequestBodyObject(
       request.method.toString().toLowerCase(),
     ),
   }
-  // extract content type, currently we have support to parse the schema for these
-  // content types: application/x-www-form-urlencoded, application/json
+
   const getContentType = Object.keys(request.headers)
     .filter((header) => header.toLowerCase() === 'content-type')
-    .map((header) => request.headers[header])
-  const contentType =
-    getContentType.length > 0 ? getContentType[0] : 'text/plain'
+    .map((header) => (request.headers[header] as string).toLowerCase())
 
-  if (request.jsonBody && contentType === 'application/json') {
-    output.content[contentType as string] = {
-      schema: extendToJsonSchema(
-        toJsonSchema(request.jsonBody),
-        request.jsonBody,
-      ) as OpenAPIV3.SchemaObject,
-    }
+  const type = getContentType
+    .map((header) => header.match(/((\w+)\/\'?\w+([-']\w+)*\'?)/g))
+    .join()
+    .toString()
 
-    return output
+  const body = request.getBody(true) as DynamicString
+  switch (type) {
+    case 'multipart/form-data':
+      output.content[type as string] = body
+        ? {
+            schema: extendToJsonSchema(
+              toJsonSchema(request.getMultipartBody()),
+              request.getMultipartBody(),
+            ) as OpenAPIV3.SchemaObject,
+          }
+        : {}
+      break
+
+    case 'application/x-www-form-urlencoded':
+      output.content[type as string] = body
+        ? {
+            schema: extendToJsonSchema(
+              toJsonSchema(body.getEvaluatedString()),
+              body.getEvaluatedString(),
+            ) as OpenAPIV3.SchemaObject,
+          }
+        : {}
+      break
+
+    case 'application/json':
+      output.content[type as string] = body
+        ? {
+            schema: extendToJsonSchema(
+              toJsonSchema(JSON.parse(body.getEvaluatedString())),
+              JSON.parse(body.getEvaluatedString()),
+            ) as OpenAPIV3.SchemaObject,
+          }
+        : {}
+      break
+
+    case 'application/octet-stream':
+      const content = body.getOnlyDynamicValue() as DynamicValue
+      output.content[type as string] =
+        content.type === 'com.luckymarmot.FileContentDynamicValue'
+          ? {
+              schema: {
+                type: 'string',
+                format: 'base64',
+                example: content.bookmarkData ? content.bookmarkData : '',
+              },
+            }
+          : {}
+      break
+
+    case 'text/plain':
+      output.content['text/plain'] = body
+        ? {
+            schema: {
+              type: 'string',
+              example: request.getBody() || '',
+            },
+          }
+        : {}
+      break
   }
 
-  return undefined
+  return output
 }
 
 /**
@@ -319,16 +371,18 @@ export function buildResponsesObject(
       Object.create({}) as OpenAPIV3.HeaderObject,
     )
 
-  const statusCode = getHttpExchange.responseStatusCode.toString()
+  const statusCode =
+    getHttpExchange.responseStatusCode === 0
+      ? 200
+      : getHttpExchange.responseStatusCode
+
   const contentType =
     getContentType.length > 0
       ? getContentType[0].replace(/(; .*)$/g, '')
       : 'text/plain'
 
   const responses: OpenAPIV3.ResponsesObject = {
-    [statusCode]: {
-      description: '',
-    },
+    [statusCode]: { description: '' },
   }
 
   const getResponseType = jsonParseCheck(getHttpExchange.responseBody)
@@ -340,7 +394,7 @@ export function buildResponsesObject(
     case isURLEncoded.test(contentType) && typeof getResponseType === 'object':
       responses[statusCode] = {
         ...buildResponseObject(contentType, getResponseType),
-        headers: getHeaders as { [key: string]: OpenAPIV3.HeaderObject },
+        headers: getHeaders as Record<string, OpenAPIV3.HeaderObject>,
       }
       break
     default:
@@ -356,7 +410,6 @@ export function buildResponsesObject(
       }
       break
   }
-
   return responses
 }
 

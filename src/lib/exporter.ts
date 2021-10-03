@@ -8,7 +8,13 @@ import {
   buildServerObject,
 } from './converter'
 
-const { identifier, title, inputs, fileExtensions } = config
+const {
+  identifier,
+  title,
+  inputs,
+  fileExtensions,
+  languageHighlighter,
+} = config
 
 /**
  * @class
@@ -18,6 +24,7 @@ export default class OpenAPIv3Generator implements Paw.Generator {
   public static title = title
   public static inputs = inputs
   public static identifier = identifier
+  public static languageHighlighter = languageHighlighter
   public static fileExtensions = [...fileExtensions]
 
   /**
