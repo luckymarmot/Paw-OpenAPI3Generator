@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": "git@github.com:luckymarmot/Paw-OpenAPI3Generator.git",
   "scripts": {
-    "start": "yarn dev:mac",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider yarn dev:mac",
     "dev:mac": "bash -c \"./node_modules/.bin/webpack --node-env development --watch -o $HOME/$npm_package_config_outputDir/$npm_package_config_identifier\"",
     "dev:mac:static": "bash -c \"./node_modules/.bin/webpack --node-env development -o $HOME/$npm_package_config_outputDir/$npm_package_config_identifier\"",
     "dev:web": "echo \"\n\tWork in progress...\n\"",

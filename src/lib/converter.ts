@@ -2,7 +2,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import toJsonSchema from 'to-json-schema'
 import qs from 'query-string'
 import Paw from 'types/paw'
-import { PawURL } from 'utils'
+import { logger, PawURL } from 'utils'
 
 type PawToOAS3 = OpenAPIV3.OperationObject & {
   path: string
@@ -225,75 +225,50 @@ export function buildRequestBodyObject(
     ),
   }
 
-  const getContentType = Object.keys(request.headers)
-    .filter((header) => header.toLowerCase() === 'content-type')
-    .map((header) => (request.headers[header] as string).toLowerCase())
-
-  const type = getContentType
-    .map((header) => header.match(/((\w+)\/\'?\w+([-']\w+)*\'?)/g))
-    .join()
-    .toString()
-
-  const body = request.getBody(true) as DynamicString
-  switch (type) {
-    case 'multipart/form-data':
-      output.content[type as string] = body
-        ? {
-            schema: extendToJsonSchema(
-              toJsonSchema(request.getMultipartBody()),
-              request.getMultipartBody(),
-            ) as OpenAPIV3.SchemaObject,
-          }
-        : {}
-      break
-
-    case 'application/x-www-form-urlencoded':
-      output.content[type as string] = body
-        ? {
-            schema: extendToJsonSchema(
-              toJsonSchema(body.getEvaluatedString()),
-              body.getEvaluatedString(),
-            ) as OpenAPIV3.SchemaObject,
-          }
-        : {}
-      break
-
-    case 'application/json':
-      output.content[type as string] = body
-        ? {
-            schema: extendToJsonSchema(
-              toJsonSchema(JSON.parse(body.getEvaluatedString())),
-              JSON.parse(body.getEvaluatedString()),
-            ) as OpenAPIV3.SchemaObject,
-          }
-        : {}
-      break
-
-    case 'application/octet-stream':
-      const content = body.getOnlyDynamicValue() as DynamicValue
-      output.content[type as string] =
-        content.type === 'com.luckymarmot.FileContentDynamicValue'
-          ? {
-              schema: {
-                type: 'string',
-                format: 'base64',
-                example: content.bookmarkData ? content.bookmarkData : '',
-              },
-            }
-          : {}
-      break
-
-    case 'text/plain':
-      output.content['text/plain'] = body
-        ? {
-            schema: {
-              type: 'string',
-              example: request.getBody() || '',
-            },
-          }
-        : {}
-      break
+  if (request.getMultipartBody()) {
+    output.content['multipart/form-data'] = request.multipartBody
+      ? {
+          schema: extendToJsonSchema(
+            toJsonSchema(request.multipartBody),
+            request.multipartBody,
+          ) as OpenAPIV3.SchemaObject,
+        }
+      : {}
+    return output
   }
+
+  if (request.getUrlEncodedBody()) {
+    output.content['application/x-www-form-urlencoded'] = request.urlEncodedBody
+      ? {
+          schema: extendToJsonSchema(
+            toJsonSchema(request.urlEncodedBody),
+            request.urlEncodedBody,
+          ) as OpenAPIV3.SchemaObject,
+        }
+      : {}
+    return output
+  }
+
+  if (request.jsonBody) {
+    output.content['application/json'] = request.jsonBody
+      ? {
+          schema: extendToJsonSchema(
+            toJsonSchema(request.jsonBody),
+            request.jsonBody,
+          ) as OpenAPIV3.SchemaObject,
+        }
+      : {}
+    return output
+  }
+
+  output.content['text/plain'] = request.body
+    ? {
+        schema: {
+          type: 'string',
+          example: request.body || '',
+        },
+      }
+    : {}
 
   return output
 }
